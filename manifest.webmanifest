@@ -1,0 +1,16 @@
+{
+  "name": "韓麻 HEADS-UP",
+  "short_name": "韓麻",
+  "description": "韓国式麻雀「韓麻」ベースの2人打ちスピード麻雀",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#04110c",
+  "theme_color": "#072a1e",
+  "lang": "ja",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
