@@ -316,6 +316,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLevel"><option value="weak">弱</option><option value="mid" selected>中</option><option value="strong">強</option></select></label>
       <label class="set">持ち時間
         <select id="setTime"><option value="0">なし</option><option value="5">5秒</option><option value="8" selected>8秒</option><option value="12">12秒</option></select></label>
+      <label class="set">画面レイアウト
+        <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
       <label class="set">アシスト表示 <input type="checkbox" id="setAssist" checked></label>
@@ -1053,12 +1055,13 @@ function toggleMenu(force) {
 }
 function fitStage() {
   const st = document.getElementById('stage');
-  const por = window.innerHeight > window.innerWidth;
+  const lay = S.settings.layout || 'auto';
+  const por = lay === 'port' ? true : lay === 'land' ? false : window.innerHeight > window.innerWidth;
   const changed = por !== S.portrait;
   S.portrait = por; st.classList.toggle('portrait', por);
   if (por) {
     let k = window.innerWidth / 720, H = window.innerHeight / k;
-    if (H < 1100) { H = 1100; k = window.innerHeight / 1100; }
+    if (H < 1100) { H = Math.min(1400, Math.max(1100, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
     S.scale = k; S.stageH = H; st.style.height = H + 'px';
   } else {
     S.scale = Math.min(window.innerWidth / 1300, window.innerHeight / 740); S.stageH = 720; st.style.height = '';
@@ -1185,6 +1188,8 @@ if (HAS_DOM) {
   });
   document.getElementById('setLevel').addEventListener('change', e => { S.settings.level = e.target.value; render(); });
   document.getElementById('setTime').addEventListener('change', e => { S.settings.time = +e.target.value; });
+  try { const lay = localStorage.getItem('hanma_layout'); if (lay) { S.settings.layout = lay; document.getElementById('setLayout').value = lay; } } catch (e) {}
+  document.getElementById('setLayout').addEventListener('change', e => { S.settings.layout = e.target.value; try { localStorage.setItem('hanma_layout', e.target.value); } catch (er) {} fitStage(); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
   document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; render(); });
   document.addEventListener('keydown', e => {
