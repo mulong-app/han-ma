@@ -378,7 +378,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
-      <label class="set">触覚フィードバック <input type="checkbox" id="setHaptic" checked></label>
+      <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px">テスト</button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="gaugeMax">テスト用：ゲージMAX</button>
@@ -696,7 +696,7 @@ function discardTile(who, id, declare) {
   const t = h.splice(i, 1)[0];
   S.drawn[who] = null; S.phase = 'wait';
   t.side = !!declare; S.river[who].push(t);
-  if (who === 'p' && !declare) haptic('discard');
+  if (!declare) haptic(who === 'p' ? 'discard' : 'oppDiscard');
   if (who === 'p') S.redealAvail = false;
   if (declare) { S.riichi[who] = true; emit('riichi', { who, tile: tileName(t.k) }); cutin('リーチ', who, null, 'riichi_' + who); }
   if (!S.tenpaiSent[who] && shAll(counts(S.hands[who]), S.melds[who].length) === 0) {
@@ -1096,6 +1096,7 @@ function renderPts() {
 const HAPTIC = {
   tick: [6],                       // スライダー・矢印で牌を移動
   discard: [14],                   // 打牌
+  oppDiscard: [8],                 // 相手の打牌
   call: [28, 40, 28],              // ポン・カン
   riichi: [40, 30, 70],            // リーチ
   win: [60, 40, 60, 40, 140],      // ロン・ツモ
@@ -1103,19 +1104,27 @@ const HAPTIC = {
   skill: [20, 30, 20, 30, 80],     // 必殺技
   draw: [30],                      // 流局
 };
-let iosSwitch = null;
+const IS_IOS = HAS_DOM && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+function iosTap() {
+  // iOS 18+ Safari：switch 付きチェックボックスの切替で触覚が出る。毎回作って即削除する
+  const lb = document.createElement('label'), cb = document.createElement('input');
+  lb.setAttribute('aria-hidden', 'true'); lb.style.display = 'none';
+  cb.type = 'checkbox'; cb.setAttribute('switch', '');
+  lb.appendChild(cb); document.head.appendChild(lb);
+  lb.click();
+  document.head.removeChild(lb);
+}
 function haptic(kind) {
   if (!HAS_DOM || !S.settings.haptic) return;
   const pat = HAPTIC[kind] || HAPTIC.tick;
   try {
-    if (navigator.vibrate) { navigator.vibrate(pat); return; }
-    if (!iosSwitch) {
-      const lb = document.createElement('label'), cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.setAttribute('switch', ''); cb.tabIndex = -1; cb.setAttribute('aria-hidden', 'true');
-      lb.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
-      lb.appendChild(cb); document.body.appendChild(lb); iosSwitch = lb;
-    }
-    iosSwitch.click();
+    if (!IS_IOS && navigator.vibrate) { navigator.vibrate(pat); return; }
+    // iOS：振動パターンの「オン」の数だけ軽いタップを打つ（強弱は出せない）
+    let t = 0;
+    pat.forEach((ms, i) => {
+      if (i % 2 === 0) { if (t === 0) iosTap(); else setTimeout(() => { try { iosTap(); } catch (e) {} }, t); }
+      t += ms;
+    });
   } catch (e) {}
 }
 function canSelect() { return S.turn === 'p' && !S.ended && !S.paused && ((S.phase === 'discard' && !S.riichi.p) || S.phase === 'riichiSelect'); }
@@ -1303,6 +1312,7 @@ function act(a, ds) {
     case 'skip': reactSkip(); break;
     case 'pause': setPause(true); break;
     case 'menu': toggleMenu(); break;
+    case 'hapticTest': { const on = S.settings.haptic; S.settings.haptic = true; haptic('win'); S.settings.haptic = on; } break;
     case 'selL': moveSel(-1); break;
     case 'pkan':
       if (S.phase === 'react' && S.opts.kan) claim('p', S.reactTile, 'minkan');
@@ -1355,6 +1365,7 @@ if (HAS_DOM) {
   });
   const endDrag = () => {
     if (!drag) return; const d = drag; drag = null;
+    if (d.type === 'slider' && IS_IOS) haptic('tick');
     if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos4', JSON.stringify(S.btnPos)); } catch (e) {} } }
   };
   document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
