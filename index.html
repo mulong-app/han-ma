@@ -213,8 +213,15 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #thumb .arr{position:absolute;top:-26px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:22px solid #ffe14d;filter:drop-shadow(0 0 4px rgba(255,225,77,.7))}
 #thumb .tile{--u:90px}
 #thumb .ph{width:90px;height:122px;border-radius:7px;background:rgba(255,255,255,.12)}
-.pctrl{display:grid;grid-template-columns:350px 1fr 160px;gap:8px;align-items:start;min-height:128px}
+.pctrl{display:grid;grid-template-columns:350px 1fr 160px;gap:8px;align-items:center;min-height:128px}
 .pub{position:relative;display:flex;flex-direction:column;gap:8px}
+.pblock{margin-top:4px;gap:4px}
+.pbar{border-top:1px solid rgba(216,180,90,.16);padding-top:8px;margin-top:6px;display:flex;flex-direction:column;gap:4px}
+.pbar1{display:flex;align-items:center;gap:10px}
+.pbar1 .nm{color:var(--gold2);font-weight:900;font-size:14px}
+.pbar .sp{flex:1}
+.pbar .passist{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#stage.portrait.inhand .corner{display:none}
 .prow{display:flex;gap:8px}
 .pbox{border:1px solid rgba(216,180,90,.16);background:rgba(0,0,0,.12);border-radius:12px;padding:8px}
 .priver{flex:none;width:340px;height:226px;--rw:48px;overflow:hidden}
@@ -240,7 +247,7 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .pleft .msg{margin:0;font-size:15px}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px}
 .pbtns .btn{font-size:20px;padding:12px 22px}
-.parrows{display:flex;gap:14px;justify-content:center;padding-top:28px}
+.parrows{display:flex;gap:14px;justify-content:center}
 .arrowbtn{appearance:none;width:66px;height:66px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
   color:#ffe14d;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),rgba(0,0,0,.35));border:2px solid rgba(255,225,77,.55);
   box-shadow:0 4px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15)}
@@ -871,6 +878,7 @@ const btn = (act, label, cls, extra) => `<button class="btn ${cls || ''}" data-a
 function render() {
   if (!HAS_DOM) return;
   renderSide();
+  document.getElementById('stage').classList.toggle('inhand', S.handNo > 0 && !S.ended);
   const board = document.getElementById('board');
   if (S.handNo === 0) { board.innerHTML = ''; return; }
   const myTurn = S.turn === 'p';
@@ -985,13 +993,13 @@ function render() {
       </div>
       ${choose}
     </div>
-    <div class="pspace"></div>
-    <div class="zone">
-      <div class="who"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
-      <div class="passist">${assist}</div>
+    <div class="zone pblock">
       <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
+    </div>
+    <div class="pspace"></div>
+    <div class="zone">
       <div class="pctrl" id="pctrl">
         <div class="pleft">${extra ? `<div>${extra}</div>` : ''}<div class="pgrid">${grid}</div></div>
         <div class="parrows">
@@ -1000,12 +1008,16 @@ function render() {
         </div>
         <div></div>
       </div>
+      <div class="pbar">
+        <div class="pbar1"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
+        <div class="passist">${assist || '&nbsp;'}</div>
+      </div>
     </div>
     <button id="fireBtn" class="${fireOn ? 'on' : ''}" style="left:${S.btnPos ? S.btnPos.x : 0}px;top:${S.btnPos ? S.btnPos.y : 0}px">${fireLabel}<small>ドラッグで移動</small></button>`;
     if (!S.btnPos) {
       const pc = document.getElementById('pctrl'), tb = document.querySelector('.table');
       const pr = pc.getBoundingClientRect(), tr = tb.getBoundingClientRect();
-      S.btnPos = { x: Math.round((pr.right - tr.left) / S.scale) - 10 - 150 - 4, y: Math.round((pr.top - tr.top) / S.scale) - 10 };
+      S.btnPos = { x: Math.round((pr.right - tr.left) / S.scale) - 10 - 150 - 4, y: Math.round((pr.top + pr.height / 2 - tr.top) / S.scale) - 75 };
       const fb = document.getElementById('fireBtn'); fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px';
     }
     updateSel();
@@ -1250,7 +1262,7 @@ if (HAS_DOM) {
     if (e.key === 'Escape' && document.getElementById('menu').classList.contains('show')) { toggleMenu(false); return; }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (S.paused) { S.menuPaused = false; setPause(false); } else setPause(true); }
   });
-  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
+  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos3') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
     if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
@@ -1268,7 +1280,7 @@ if (HAS_DOM) {
   });
   const endDrag = () => {
     if (!drag) return; const d = drag; drag = null;
-    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos', JSON.stringify(S.btnPos)); } catch (e) {} } }
+    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos3', JSON.stringify(S.btnPos)); } catch (e) {} } }
   };
   document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
   window.addEventListener('resize', fitStage); fitStage();
