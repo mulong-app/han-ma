@@ -121,7 +121,9 @@ button{font-family:inherit}
 .tile.hl{outline:3px solid #ff6b6b;outline-offset:1px}
 .hand.mine .tile.click{cursor:pointer}
 .hand.mine .tile.click:hover{transform:translateY(-8px)}
-.hand.mine .tile.rec::before{content:'▼';position:absolute;top:-17px;font-size:12px;color:var(--gold2)}
+.hand.mine .tile.rec::before{content:'勧';position:absolute;top:calc(var(--u)*-.5);left:50%;transform:translateX(-50%);
+  font:900 calc(var(--u)*.38)/1 'Zen Kaku Gothic New',sans-serif;color:rgba(246,226,160,.55);pointer-events:none}
+.hand.mine .tile.rec.dora::before{top:calc(var(--u)*-.85)}
 .hand.mine .tile.dim{opacity:.35}
 
 /* ---------- overlay / cutin ---------- */
@@ -377,7 +379,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
       <label class="set">触覚フィードバック <input type="checkbox" id="setHaptic" checked></label>
-      <label class="set">アシスト表示 <input type="checkbox" id="setAssist" checked></label>
+      <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="gaugeMax">テスト用：ゲージMAX</button>
         <button class="btn ghost sm" data-act="restart">最初から</button>
@@ -982,7 +984,6 @@ function render() {
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${MAX_HANDS}</small></b>
           <span>ベット</span><b>×${S.bet}${S.skill ? ` · <span style="color:#c9a0ff">${SKILLS[S.skill].name}</span>` : ''}</b>
           <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
-          <span>供託</span><b class="pot">${S.pot} チップ</b>
         </div>`;
   if (S.portrait) {
     const handW = 692 * (1 - 2 * HAND_MARGIN), barM = ((1 - (1 - 2 * HAND_MARGIN) * SLIDER_RATIO) / 2) * 100;
@@ -1007,7 +1008,7 @@ function render() {
     const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
     <div class="pinfo">
-      <span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
+      <span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
     </div>
     <div class="handrow phand-c" style="--tw:${cu}px"><div class="hand opp">${cpuTiles}</div></div>
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
@@ -1033,8 +1034,7 @@ function render() {
       </div>
     </div>
     <div class="pbar">
-      <div class="pbar1"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
-      <div class="passist">${assist || '&nbsp;'}</div>
+      <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
     </div>
     <div class="pspace bottom"></div>
     <button id="fireBtn" class="${fireOn ? 'on' : ''}" style="left:${S.btnPos ? S.btnPos.x : 0}px;top:${S.btnPos ? S.btnPos.y : 0}px">${fireLabel}<small>ドラッグで移動</small></button>`;
@@ -1050,7 +1050,7 @@ function render() {
   }
   board.innerHTML = `
     <div class="zone">
-      <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
+      <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
     <div class="mid">
@@ -1063,13 +1063,12 @@ function render() {
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${MAX_HANDS}</small></b>
           <span>ベット</span><b>×${S.bet}${S.skill ? ` · <span style="color:#c9a0ff">${SKILLS[S.skill].name}</span>` : ''}</b>
           <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
-          <span>供託</span><b class="pot">${S.pot} チップ</b>
         </div>
       </div>
       <div class="rivers"><div class="river">${riverHTML('p')}</div></div>
     </div>
     <div class="zone">
-      <div class="who"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="assist">${assist}</span></div>
+      <div class="who"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="handrow"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div class="actions"><span class="msg">${msg}</span>${acts}</div>
