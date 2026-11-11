@@ -360,6 +360,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
+      <label class="set">触覚フィードバック <input type="checkbox" id="setHaptic" checked></label>
       <label class="set">アシスト表示 <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="gaugeMax">テスト用：ゲージMAX</button>
@@ -418,7 +419,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  settings: { level: 'mid', assist: true, time: 8, timeout: 'pot' }, log: [], token: 0, ended: true, phase: 'idle',
+  settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -677,6 +678,7 @@ function discardTile(who, id, declare) {
   const t = h.splice(i, 1)[0];
   S.drawn[who] = null; S.phase = 'wait';
   t.side = !!declare; S.river[who].push(t);
+  if (who === 'p' && !declare) haptic('discard');
   if (who === 'p') S.redealAvail = false;
   if (declare) { S.riichi[who] = true; emit('riichi', { who, tile: tileName(t.k) }); cutin('リーチ', who, null, 'riichi_' + who); }
   if (!S.tenpaiSent[who] && shAll(counts(S.hands[who]), S.melds[who].length) === 0) {
@@ -1058,6 +1060,34 @@ function render() {
   if (timerId) tick();
 }
 function renderSide() {}
+/* ---------- haptics ----------
+   Android 等：Vibration API でパターン振動
+   iPhone（iOS 18+ Safari）：スイッチ切替時の触覚を利用した1回の軽いタップ（ユーザー操作直後のみ） */
+const HAPTIC = {
+  tick: [6],                       // スライダー・矢印で牌を移動
+  discard: [14],                   // 打牌
+  call: [28, 40, 28],              // ポン・カン
+  riichi: [40, 30, 70],            // リーチ
+  win: [60, 40, 60, 40, 140],      // ロン・ツモ
+  lose: [120],                     // 相手の和了
+  skill: [20, 30, 20, 30, 80],     // 必殺技
+  draw: [30],                      // 流局
+};
+let iosSwitch = null;
+function haptic(kind) {
+  if (!HAS_DOM || !S.settings.haptic) return;
+  const pat = HAPTIC[kind] || HAPTIC.tick;
+  try {
+    if (navigator.vibrate) { navigator.vibrate(pat); return; }
+    if (!iosSwitch) {
+      const lb = document.createElement('label'), cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.setAttribute('switch', ''); cb.tabIndex = -1; cb.setAttribute('aria-hidden', 'true');
+      lb.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';
+      lb.appendChild(cb); document.body.appendChild(lb); iosSwitch = lb;
+    }
+    iosSwitch.click();
+  } catch (e) {}
+}
 function canSelect() { return S.turn === 'p' && !S.ended && !S.paused && ((S.phase === 'discard' && !S.riichi.p) || S.phase === 'riichiSelect'); }
 function selList() {
   const mh = sortedHand('p'), all = mh.dt ? mh.rest.concat([mh.dt]) : mh.rest;
@@ -1067,6 +1097,7 @@ function moveSel(d) {
   if (!canSelect()) return;
   const list = selList(); if (!list.length) return;
   let i = list.findIndex(t => t.id === S.sel); i = Math.max(0, Math.min(list.length - 1, (i < 0 ? 0 : i) + d));
+  if (list[i].id !== S.sel) haptic('tick');
   S.sel = list[i].id; updateSel();
 }
 function updateSel() {
@@ -1086,7 +1117,7 @@ function selectByBar(x) {
   const list = selList(), bar = document.querySelector('#slider .bar'); if (!list.length || !bar) return;
   const r = bar.getBoundingClientRect(), frac = Math.max(0, Math.min(1, (x - r.left) / r.width));
   const t = list[Math.round(frac * (list.length - 1))];
-  if (t.id !== S.sel) { S.sel = t.id; updateSel(); }
+  if (t.id !== S.sel) { S.sel = t.id; updateSel(); haptic('tick'); }
 }
 function selectNearest(x) {
   if (!canSelect()) return;
@@ -1140,6 +1171,13 @@ function renderLog() {
 }
 function cutin(text, who, tier, key) {
   if (!HAS_DOM) return;
+  const k = key || '';
+  if (/^(pon|kan)_/.test(k)) haptic('call');
+  else if (k.startsWith('riichi_')) haptic('riichi');
+  else if (k.startsWith('win_p')) haptic('win');
+  else if (k.startsWith('win_c')) haptic('lose');
+  else if (k.startsWith('skill_')) haptic('skill');
+  else if (k === 'ryukyoku') haptic('draw');
   const el = document.getElementById('cutin');
   el.className = (who === 'p' ? 'pl' : who === 'c' ? 'cp' : 'nt') + (tier ? ' t-' + tier : '');
   el.innerHTML = `<div class="slot"><span>IMAGE SLOT</span><b>${key || ''}</b></div><div class="txt">${text}</div>`;
@@ -1258,6 +1296,8 @@ if (HAS_DOM) {
   document.getElementById('setTime').addEventListener('change', e => { S.settings.time = +e.target.value; });
   try { const lay = localStorage.getItem('hanma_layout'); if (lay) { S.settings.layout = lay; document.getElementById('setLayout').value = lay; } } catch (e) {}
   document.getElementById('setLayout').addEventListener('change', e => { S.settings.layout = e.target.value; try { localStorage.setItem('hanma_layout', e.target.value); } catch (er) {} fitStage(); });
+  try { const hp = localStorage.getItem('hanma_haptic'); if (hp !== null) { S.settings.haptic = hp === '1'; document.getElementById('setHaptic').checked = S.settings.haptic; } } catch (e) {}
+  document.getElementById('setHaptic').addEventListener('change', e => { S.settings.haptic = e.target.checked; try { localStorage.setItem('hanma_haptic', e.target.checked ? '1' : '0'); } catch (er) {} if (e.target.checked) haptic('call'); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
   document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; render(); });
   document.addEventListener('keydown', e => {
