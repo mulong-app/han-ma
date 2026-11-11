@@ -267,6 +267,22 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .pbar .passist{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:18px}
 .portrait .pspace.bottom{flex:.6}
 #stage.portrait.inhand .corner{display:none}
+.pctrl2{display:grid;grid-template-columns:322px 1fr;gap:26px;align-items:start;margin-top:12px}
+.pctrl2 .pgrid{grid-template-columns:repeat(3,1fr);gap:8px}
+.pctrl2 .pbtn{height:100px;font-size:22px;letter-spacing:0;white-space:nowrap;padding:0}
+.pright2{display:flex;flex-direction:column;gap:6px}
+.pright2 #slider{height:118px}
+.pright2 #slider .bar{top:52px}
+.pright2 #thumb{top:6px}
+.prow2{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.prow2 .fireph{width:140px;height:136px}
+.prow2 .parrows{gap:8px}
+.prow2 .arrowbtn{width:58px;height:102px;border-radius:29px}
+.portrait #fireBtn{width:140px;height:140px}
+.pbar{min-height:98px;justify-content:center}
+.pbar .btn.sm{font-size:20px;padding:14px 22px}
+.pbar .tg{font-size:16px}
+.pbar .tg .bar{width:220px;height:16px}
 .portrait #board > *{flex-shrink:0}
 .portrait #board > .pspace{flex-shrink:1;min-height:0}
 .choosepop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;background:rgba(4,17,12,.94);border:1px solid var(--gold);border-radius:14px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gold2);font-weight:900}
@@ -1022,15 +1038,17 @@ function render() {
     <div class="pbox pmrow"><div class="melds">${meldsHTML('p', true)}</div></div>
     <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
     <div class="timer"><i id="timerBar"></i></div>
-    <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
-    <div class="pctrl" id="pctrl">
+    <div class="pctrl2" id="pctrl">
       <div class="pleft">${extra ? `<div>${extra}</div>` : ''}<div class="pgrid">${grid}</div></div>
-      <div class="pright">
-        <div class="parrows">
-          <button class="arrowbtn" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}</button>
-          <button class="arrowbtn" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}</button>
+      <div class="pright2">
+        <div id="slider"><div class="bar" style="left:4%;right:13%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
+        <div class="prow2">
+          <div class="fireph" id="fireph"></div>
+          <div class="parrows">
+            <button class="arrowbtn" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}</button>
+            <button class="arrowbtn" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}</button>
+          </div>
         </div>
-        <div class="fireph" id="fireph"></div>
       </div>
     </div>
     <div class="pbar">
@@ -1041,7 +1059,7 @@ function render() {
     if (!S.btnPos) {
       const ph = document.getElementById('fireph'), tb = document.querySelector('.table');
       const pr = ph.getBoundingClientRect(), tr = tb.getBoundingClientRect();
-      S.btnPos = { x: Math.round((pr.left + pr.width / 2 - tr.left) / S.scale) - 75, y: Math.round((pr.top + pr.height / 2 - tr.top) / S.scale) - 75 };
+      S.btnPos = { x: Math.round((pr.left + pr.width / 2 - tr.left) / S.scale) - 70, y: Math.round((pr.top + pr.height / 2 - tr.top) / S.scale) - 70 };
       const fb = document.getElementById('fireBtn'); fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px';
     }
     updateSel();
@@ -1347,7 +1365,7 @@ if (HAS_DOM) {
     if (e.key === 'Escape' && document.getElementById('menu').classList.contains('show')) { toggleMenu(false); return; }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (S.paused) { S.menuPaused = false; setPause(false); } else setPause(true); }
   });
-  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos4') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
+  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos5') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
     if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
@@ -1359,14 +1377,14 @@ if (HAS_DOM) {
     const dx = (e.clientX - drag.sx) / S.scale, dy = (e.clientY - drag.sy) / S.scale;
     if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
     if (drag.moved) {
-      S.btnPos = { x: Math.max(0, Math.min(720 - 150, drag.ox + dx)), y: Math.max(0, Math.min((S.stageH || 1400) - 150, drag.oy + dy)) };
+      S.btnPos = { x: Math.max(0, Math.min(720 - 140, drag.ox + dx)), y: Math.max(0, Math.min((S.stageH || 1400) - 150, drag.oy + dy)) };
       const fb = document.getElementById('fireBtn'); if (fb) { fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px'; }
     }
   });
   const endDrag = () => {
     if (!drag) return; const d = drag; drag = null;
     if (d.type === 'slider' && IS_IOS) haptic('tick');
-    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos4', JSON.stringify(S.btnPos)); } catch (e) {} } }
+    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos5', JSON.stringify(S.btnPos)); } catch (e) {} } }
   };
   document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
   window.addEventListener('resize', fitStage); fitStage();
