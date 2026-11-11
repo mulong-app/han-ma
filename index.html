@@ -207,22 +207,44 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .river.opp{justify-content:center}
 .portrait .center{padding:6px 0}
 .tile.ghost{visibility:hidden}
-#slider{position:relative;height:170px;touch-action:none;cursor:grab}
-#slider .bar{position:absolute;top:80px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
+#slider{position:relative;height:150px;touch-action:none;cursor:grab}
+#slider .bar{position:absolute;top:72px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
 #thumb{position:absolute;top:28px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
 #thumb .arr{position:absolute;top:-26px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:22px solid #ffe14d;filter:drop-shadow(0 0 4px rgba(255,225,77,.7))}
-#thumb .tile{--u:100px}
-#thumb .ph{width:100px;height:136px;border-radius:7px;background:rgba(255,255,255,.12)}
-.pctrl{display:grid;grid-template-columns:1fr 210px 170px;gap:8px;align-items:start;min-height:170px}
+#thumb .tile{--u:90px}
+#thumb .ph{width:90px;height:122px;border-radius:7px;background:rgba(255,255,255,.12)}
+.pctrl{display:grid;grid-template-columns:350px 1fr 160px;gap:8px;align-items:start;min-height:128px}
+.pub{position:relative;display:flex;flex-direction:column;gap:8px}
+.prow{display:flex;gap:8px}
+.pbox{border:1px solid rgba(216,180,90,.16);background:rgba(0,0,0,.12);border-radius:12px;padding:8px}
+.priver{flex:none;width:340px;height:226px;--rw:48px;overflow:hidden}
+.priver .river{max-width:none;width:100%;min-height:0;gap:3px}
+.priver .river:not(.opp){justify-content:flex-start;align-content:flex-start}
+.priver .river.opp{justify-content:flex-start;align-content:flex-start}
+.pmeld{flex:1;height:226px;--rw:30px}
+.pmeld .melds{margin:0;flex-wrap:wrap;gap:10px;align-content:flex-start}
+.prow:first-child .pmeld .melds{align-content:flex-end;height:100%;justify-content:flex-end}
+.pstat{display:flex;justify-content:center;align-items:center;min-height:120px}
+.pstat .center{padding:0}
+.pgrid{display:grid;grid-template-columns:repeat(3,108px);gap:8px}
+.pbtn{appearance:none;height:56px;border-radius:10px;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;letter-spacing:.06em;cursor:pointer;
+  color:rgba(246,226,160,.35);background:rgba(0,0,0,.18);border:1px solid rgba(216,180,90,.18);transition:all .12s}
+.pbtn.on{color:#2a1a05;background:linear-gradient(180deg,#fbe7a6,#d8b45a 60%,#b88e2f);border-color:#f6e2a0;box-shadow:0 3px 0 #7a5a16,0 6px 14px rgba(0,0,0,.4)}
+.pbtn.on.win{color:#fff;background:linear-gradient(180deg,#ffb3b3,#e2434c 60%,#a81d26);border-color:#ff9a9a;box-shadow:0 3px 0 #5e0d12,0 0 18px rgba(255,80,80,.6);animation:pulse .7s infinite alternate}
+.pbtn.on.ghost{color:var(--ink);background:rgba(255,255,255,.08);border-color:rgba(246,226,160,.5);box-shadow:none}
+.pbtn.on:active{transform:translateY(2px)}
+.pbtn:disabled{cursor:default}
+.choosepop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;background:rgba(4,17,12,.94);border:1px solid var(--gold);border-radius:14px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gold2);font-weight:900}
+.choosepop .tile{--u:70px}
 .pleft{display:flex;flex-direction:column;gap:8px}
 .pleft .msg{margin:0;font-size:15px}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px}
 .pbtns .btn{font-size:20px;padding:12px 22px}
-.parrows{display:flex;gap:16px;justify-content:center;padding-top:4px}
-.arrowbtn{appearance:none;border:0;width:92px;height:84px;background:#ffe14d;cursor:pointer;filter:drop-shadow(0 4px 6px rgba(0,0,0,.45))}
-.arrowbtn.l{clip-path:polygon(0 50%,100% 0,100% 100%)}
-.arrowbtn.r{clip-path:polygon(0 0,100% 50%,0 100%)}
-.arrowbtn:active{filter:brightness(1.2)}
+.parrows{display:flex;gap:14px;justify-content:center;padding-top:28px}
+.arrowbtn{appearance:none;width:66px;height:66px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:#ffe14d;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),rgba(0,0,0,.35));border:2px solid rgba(255,225,77,.55);
+  box-shadow:0 4px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15)}
+.arrowbtn:active{transform:scale(.94);background:rgba(255,225,77,.18)}
 #fireBtn{position:absolute;z-index:12;width:150px;height:150px;border-radius:50%;border:4px solid #8a6d00;touch-action:none;cursor:pointer;
   background:radial-gradient(circle at 35% 30%,#fff7b0,#ffe14d 45%,#e0b400);color:#3a2a00;font:900 30px/1.15 'Zen Kaku Gothic New',sans-serif;
   box-shadow:0 8px 20px rgba(0,0,0,.55);opacity:.35}
@@ -925,35 +947,57 @@ function render() {
           <span>供託</span><b class="pot">${S.pot} チップ</b>
         </div>`;
   if (S.portrait) {
-    const meldN = S.melds.p.reduce((a, m) => a + m.tiles.length, 0), slots = S.hands.p.length + meldN;
-    const fixedGap = 8 + S.melds.p.length * 10 + (meldN ? 8 : 0);
     const handW = 692 * (1 - 2 * HAND_MARGIN), barM = ((1 - (1 - 2 * HAND_MARGIN) * SLIDER_RATIO) / 2) * 100;
-    const u = Math.max(18, Math.min(40, Math.floor((handW - fixedGap - slots * 2) / slots)));
+    const u = Math.max(20, Math.min(40, Math.floor((handW - 8 - 14 * 2) / 14)));
     S.tilePitch = u + 2;
-    const cMeldN = S.melds.c.reduce((a, m) => a + m.tiles.length, 0), cSlots = (14 - 3 * S.melds.c.length) + cMeldN;
-    const cu = Math.max(26, Math.min(42, Math.floor((680 - 12 - S.melds.c.length * 10 - (cMeldN ? 8 : 0) - cSlots * 3) / cSlots)));
+    const cSlots = 14 - 3 * S.melds.c.length;
+    const cu = Math.max(26, Math.min(44, Math.floor((680 - 12 - cSlots * 3) / cSlots)));
     const fireOn = canSelect();
     const fireLabel = S.phase === 'riichiSelect' ? 'リーチ<br>打牌' : '打牌';
-    if (canSelect() && S.phase === 'discard') msg = S.settings.time && S.settings.timeout === 'pot' ? 'スライドで選んで打牌（時間切れごとに1チップ供託）' : 'スライドで選んで打牌';
+    const o = S.opts || {}, disc = myTurn && S.phase === 'discard', react = S.phase === 'react', rsel = myTurn && S.phase === 'riichiSelect';
+    const B = (act, label, on, cls) => `<button class="pbtn ${cls || ''} ${on ? 'on' : ''}" data-act="${act}" ${on ? '' : 'disabled'}>${label}</button>`;
+    const grid =
+      B('tsumo', 'ツモ', disc && o.tsumo, 'win') +
+      B('ron', 'ロン', react && o.ron, 'win') +
+      B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri') +
+      B('pon', 'ポン', react && o.pon) +
+      B('pkan', 'カン', (disc && !S.riichi.p && (o.kans || []).length > 0) || (react && o.kan)) +
+      B('pskip', (react && o.ron) || (disc && S.riichi.p) ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost');
+    const extra = disc && S.redealAvail && !S.river.p.length ? '<button class="btn ghost sm" data-act="redeal">配牌やり直し</button>' : '';
+    const choose = S.phase === 'choose' && myTurn
+      ? `<div class="choosepop"><span>選択ツモ（残り${S.chooseLeft}）</span><div class="choose">${[0, 1].map(i => `<div data-choose="${i}">${tileHTML(S.wall[i])}</div>`).join('')}</div></div>` : '';
+    const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
     <div class="zone">
       <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
-      <div class="handrow" style="--tw:${cu}px;--rw:${cu}px"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
+      <div class="handrow" style="--tw:${cu}px;justify-content:center"><div class="hand opp">${cpuTiles}</div></div>
     </div>
     <div class="pspace"></div>
-    <div class="river opp">${riverHTML('c')}</div>
-    <div class="center">${centerHTML}</div>
-    <div class="river">${riverHTML('p')}</div>
+    <div class="pub">
+      <div class="prow">
+        <div class="pbox pmeld"><div class="melds opp">${meldsHTML('c', true)}</div></div>
+        <div class="pbox priver"><div class="river opp">${riverHTML('c')}</div></div>
+      </div>
+      <div class="pbox pstat"><div class="center">${centerHTML}</div></div>
+      <div class="prow">
+        <div class="pbox priver"><div class="river">${riverHTML('p')}</div></div>
+        <div class="pbox pmeld"><div class="melds">${meldsHTML('p', true)}</div></div>
+      </div>
+      ${choose}
+    </div>
     <div class="pspace"></div>
     <div class="zone">
       <div class="who"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="passist">${assist}</div>
-      <div class="handrow mrow" style="--tw:${u}px;padding-left:${HAND_MARGIN * 100}%;padding-right:${HAND_MARGIN * 100}%"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
+      <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
       <div class="pctrl" id="pctrl">
-        <div class="pleft"><p class="msg">${msg}</p><div class="pbtns">${acts}</div></div>
-        <div class="parrows"><button class="arrowbtn l" data-act="selL" aria-label="左の牌"></button><button class="arrowbtn r" data-act="selR" aria-label="右の牌"></button></div>
+        <div class="pleft">${extra ? `<div>${extra}</div>` : ''}<div class="pgrid">${grid}</div></div>
+        <div class="parrows">
+          <button class="arrowbtn" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}</button>
+          <button class="arrowbtn" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}</button>
+        </div>
         <div></div>
       </div>
     </div>
@@ -961,7 +1005,7 @@ function render() {
     if (!S.btnPos) {
       const pc = document.getElementById('pctrl'), tb = document.querySelector('.table');
       const pr = pc.getBoundingClientRect(), tr = tb.getBoundingClientRect();
-      S.btnPos = { x: Math.round((pr.right - tr.left) / S.scale) - 10 - 150 - 4, y: Math.round((pr.top - tr.top) / S.scale) - 6 };
+      S.btnPos = { x: Math.round((pr.right - tr.left) / S.scale) - 10 - 150 - 4, y: Math.round((pr.top - tr.top) / S.scale) - 10 };
       const fb = document.getElementById('fireBtn'); fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px';
     }
     updateSel();
@@ -1061,7 +1105,7 @@ function fitStage() {
   S.portrait = por; st.classList.toggle('portrait', por);
   if (por) {
     let k = window.innerWidth / 720, H = window.innerHeight / k;
-    if (H < 1100) { H = Math.min(1400, Math.max(1100, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
+    if (H < 1120) { H = Math.min(1400, Math.max(1120, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
     S.scale = k; S.stageH = H; st.style.height = H + 'px';
   } else {
     S.scale = Math.min(window.innerWidth / 1300, window.innerHeight / 740); S.stageH = 720; st.style.height = '';
@@ -1175,6 +1219,13 @@ function act(a, ds) {
     case 'pause': setPause(true); break;
     case 'menu': toggleMenu(); break;
     case 'selL': moveSel(-1); break;
+    case 'pkan':
+      if (S.phase === 'react' && S.opts.kan) claim('p', S.reactTile, 'minkan');
+      else if (S.phase === 'discard' && (S.opts.kans || []).length) { const st = S.hands.p.find(t => t.id === S.sel); selfKan('p', st && S.opts.kans.includes(st.k) ? st.k : S.opts.kans[0]); }
+      break;
+    case 'pskip':
+      if (S.phase === 'react') reactSkip(); else if (S.phase === 'discard' && S.riichi.p) discardTile('p', S.drawn.p);
+      break;
     case 'selR': moveSel(1); break;
     case 'menuClose': toggleMenu(false); break;
     case 'resume': setPause(false); break;
