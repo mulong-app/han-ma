@@ -18,7 +18,7 @@
 :root{
   --felt:#0e4f38; --felt2:#072a1e; --gold:#d8b45a; --gold2:#f6e2a0; --ink:#f4efe2; --muted:#9fbcad;
   --red:#d8414a; --panel:#0b231a; --line:rgba(216,180,90,.25);
-  --tw:56px; --rw:36px;
+  --tw:50px; --rw:32px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:#04110c;color:var(--ink);font-family:'Zen Kaku Gothic New',system-ui,sans-serif}
@@ -160,6 +160,21 @@ table.items td:last-child{text-align:right;font-weight:900}
 #cutin.cp .txt{text-shadow:0 0 24px rgba(255,80,80,.9),0 6px 0 #5e0d12;-webkit-text-stroke-color:#5e0d12}
 #cutin.t-big .txt,#cutin.t-kokushi .txt{font-size:104px}
 
+/* ---------- point gauge (top) ---------- */
+#ptsbar{position:absolute;left:0;right:0;top:0;height:34px;display:none;z-index:6;overflow:hidden;border-radius:14px 14px 0 0;
+  box-shadow:0 2px 0 rgba(0,0,0,.35),inset 0 -1px 0 rgba(255,255,255,.08)}
+#ptsbar.show{display:flex}
+#ptsbar i{display:flex;align-items:center;min-width:0;overflow:hidden;transition:flex-basis .7s cubic-bezier(.2,.8,.2,1);flex:0 0 0%}
+#ptsbar b{font:900 18px/1 'Zen Kaku Gothic New',sans-serif;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6);padding:0 12px}
+#ptsbar .sp{background:linear-gradient(180deg,#5aa6f0,#2467c4);justify-content:flex-start}
+#ptsbar .sk{background:linear-gradient(180deg,#a3a8ad,#6c7176);justify-content:center}
+#ptsbar .sk b{padding:0 4px;font-size:14px}
+#ptsbar .sc{background:linear-gradient(180deg,#f0707a,#b8232e);justify-content:flex-end}
+.portrait #ptsbar{border-radius:0;height:40px}
+.portrait #ptsbar b{font-size:22px}
+.table{padding-top:48px !important}
+.portrait .table{padding-top:52px !important}
+.corner{top:44px !important}
 /* ---------- in-table status ---------- */
 .pts{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 .pts b{font-family:'Noto Serif JP',serif;font-size:24px;color:var(--gold2);margin-right:3px;vertical-align:-2px}
@@ -340,6 +355,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 <div id="viewport"><div id="stage">
   <div class="table">
     <div class="brand">韓麻</div>
+    <div id="ptsbar" aria-label="チップの配分"><i class="sp"><b></b></i><i class="sk"><b></b></i><i class="sc"><b></b></i></div>
     <div id="board"></div>
     <div id="cutin"></div>
     <div id="overlay"></div>
@@ -891,6 +907,7 @@ const btn = (act, label, cls, extra) => `<button class="btn ${cls || ''}" data-a
 function render() {
   if (!HAS_DOM) return;
   renderSide();
+  renderPts();
   document.getElementById('stage').classList.toggle('inhand', S.handNo > 0 && !S.ended);
   const board = document.getElementById('board');
   if (S.handNo === 0) { board.innerHTML = ''; return; }
@@ -1060,6 +1077,20 @@ function render() {
   if (timerId) tick();
 }
 function renderSide() {}
+function renderPts() {
+  const bar = document.getElementById('ptsbar'); if (!bar) return;
+  bar.classList.toggle('show', S.handNo > 0);
+  const p = Math.max(0, S.chips.p), c = Math.max(0, S.chips.c), k = Math.max(0, S.pot), tot = p + c + k || 1;
+  const seg = [['.sp', p, `あなた ${p}`], ['.sk', k, `供託 ${k}`], ['.sc', c, `CPU ${c}`]];
+  for (const [sel, v, label] of seg) {
+    const el = bar.querySelector(sel), pct = v / tot * 100;
+    el.style.flexBasis = pct + '%';
+    const full = sel === '.sk' ? 10 : 12, num = sel === '.sk' ? 3.5 : 3;
+    el.querySelector('b').textContent = v === 0 ? '' : pct >= full ? label : pct >= num ? String(v) : '';
+    el.style.minWidth = v > 0 ? '4px' : '0';
+  }
+  bar.setAttribute('aria-label', `チップ あなた${p} 供託${k} CPU${c}`);
+}
 /* ---------- haptics ----------
    Android 等：Vibration API でパターン振動
    iPhone（iOS 18+ Safari）：スイッチ切替時の触覚を利用した1回の軽いタップ（ユーザー操作直後のみ） */
@@ -1153,7 +1184,7 @@ function fitStage() {
   S.portrait = por; st.classList.toggle('portrait', por);
   if (por) {
     let k = window.innerWidth / 720, H = window.innerHeight / k;
-    if (H < 1490) { H = Math.min(1560, Math.max(1490, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
+    if (H < 1530) { H = Math.min(1600, Math.max(1530, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
     S.scale = k; S.stageH = H; st.style.height = H + 'px';
   } else {
     S.scale = Math.min(window.innerWidth / 1300, window.innerHeight / 740); S.stageH = 720; st.style.height = '';
