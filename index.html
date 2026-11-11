@@ -190,8 +190,7 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .brand{font-size:90px}
 .portrait #board{gap:6px}
 .portrait .handrow{flex-wrap:nowrap;gap:8px;min-height:0}
-.portrait .hand.opp .tile{--u:42px}
-.portrait .river{max-width:none;width:100%;min-height:calc(40px*1.36*2 + 3px)}
+.portrait .river{max-width:none;width:100%}
 .portrait .river.opp{justify-content:flex-start}
 .portrait .mid{flex:1;justify-content:center;gap:0}
 .portrait .center{gap:14px}
@@ -201,13 +200,18 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .hand.mine{flex-wrap:nowrap;gap:2px}
 .portrait .hand.mine .tile.click:hover{transform:none}
 .portrait .hand.mine .tile.sel{transform:translateY(-10px);outline:3px solid #ffe14d;outline-offset:1px}
-.portrait .mrow{padding-top:14px}
-#slider{position:relative;height:104px;touch-action:none;cursor:grab}
-#slider .bar{position:absolute;left:0;right:0;top:52px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
-#thumb{position:absolute;top:22px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
+.portrait .mrow{padding:14px 15% 0;justify-content:center}
+.portrait .pspace{flex:1}
+.portrait .river{--rw:44px;min-height:calc(44px*1.36*2 + 3px);justify-content:center}
+.portrait .river.opp{justify-content:center}
+.portrait .center{padding:6px 0}
+.tile.ghost{visibility:hidden}
+#slider{position:relative;height:122px;touch-action:none;cursor:grab}
+#slider .bar{position:absolute;left:15%;right:15%;top:62px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
+#thumb{position:absolute;top:26px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
 #thumb .arr{position:absolute;top:-26px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:22px solid #ffe14d;filter:drop-shadow(0 0 4px rgba(255,225,77,.7))}
-#thumb .tile{--u:52px}
-#thumb .ph{width:52px;height:71px;border-radius:7px;background:rgba(255,255,255,.12)}
+#thumb .tile{--u:66px}
+#thumb .ph{width:66px;height:90px;border-radius:7px;background:rgba(255,255,255,.12)}
 .pctrl{display:grid;grid-template-columns:1fr 210px 170px;gap:8px;align-items:start;min-height:170px}
 .pleft{display:flex;flex-direction:column;gap:8px}
 .pleft .msg{margin:0;font-size:15px}
@@ -353,6 +357,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
    tile kind index: 0-8 萬 / 9-17 筒 / 18-26 索 / 27-33 東南西北白發中
    ========================================================= */
 const HAS_DOM = typeof document !== 'undefined';
+const SLIDER_GAIN = 2.5; // スライダーの拡大率：指の移動量の何倍で選択が動くか
 const MAX_DRAWS = 15, MAX_HANDS = 10, START_CHIPS = 100, CPU_DELAY = 480;
 const KAN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const HONOR = ['東', '南', '西', '北', '白', '發', '中'];
@@ -847,7 +852,7 @@ function render() {
   /* CPU */
   const ch = sortedHand('c');
   const cpuTiles = S.hands.c.filter(t => t.id !== S.drawn.c).map(t => S.reveal.has(t.id) ? tileHTML(t, { cls: 'peek' }) : tileHTML(t, { back: true })).join('')
-    + (ch.dt ? '<div class="gap"></div>' + (S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '');
+    + '<div class="gap"></div>' + (ch.dt ? (S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '<div class="tile back ghost"></div>');
 
   /* assist */
   let assist = '', rec = null;
@@ -918,18 +923,23 @@ function render() {
   if (S.portrait) {
     const meldN = S.melds.p.reduce((a, m) => a + m.tiles.length, 0), slots = S.hands.p.length + meldN;
     const fixedGap = 8 + S.melds.p.length * 10 + (meldN ? 8 : 0);
-    const u = Math.max(28, Math.min(48, Math.floor((690 - fixedGap - slots * 2) / slots)));
+    const u = Math.max(24, Math.min(40, Math.floor((480 - fixedGap - slots * 2) / slots)));
+    S.tilePitch = u + 2;
+    const cMeldN = S.melds.c.reduce((a, m) => a + m.tiles.length, 0), cSlots = (14 - 3 * S.melds.c.length) + cMeldN;
+    const cu = Math.max(26, Math.min(42, Math.floor((680 - 12 - S.melds.c.length * 10 - (cMeldN ? 8 : 0) - cSlots * 3) / cSlots)));
     const fireOn = canSelect();
     const fireLabel = S.phase === 'riichiSelect' ? 'リーチ<br>打牌' : '打牌';
     if (canSelect() && S.phase === 'discard') msg = S.settings.time && S.settings.timeout === 'pot' ? 'スライドで選んで打牌（時間切れごとに1チップ供託）' : 'スライドで選んで打牌';
     board.innerHTML = `
     <div class="zone">
       <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
-      <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
+      <div class="handrow" style="--tw:${cu}px;--rw:${cu}px"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
+    <div class="pspace"></div>
     <div class="river opp">${riverHTML('c')}</div>
-    <div class="mid"><div class="center">${centerHTML}</div></div>
+    <div class="center">${centerHTML}</div>
     <div class="river">${riverHTML('p')}</div>
+    <div class="pspace"></div>
     <div class="zone">
       <div class="who"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="passist">${assist}</div>
@@ -1172,12 +1182,23 @@ if (HAS_DOM) {
   try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
-    if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectNearest(e.clientX); e.preventDefault(); return; }
+    if (e.target.closest('#slider')) {
+      const list = canSelect() ? selList() : [];
+      drag = { type: 'slider', sx: e.clientX, start: Math.max(0, list.findIndex(t => t.id === S.sel)) };
+      e.preventDefault(); return;
+    }
     if (e.target.closest('#fireBtn')) { drag = { type: 'btn', sx: e.clientX, sy: e.clientY, ox: S.btnPos ? S.btnPos.x : 0, oy: S.btnPos ? S.btnPos.y : 0, moved: false }; e.preventDefault(); }
   });
   document.addEventListener('pointermove', e => {
     if (!drag) return;
-    if (drag.type === 'slider') { selectNearest(e.clientX); return; }
+    if (drag.type === 'slider') {
+      if (!canSelect()) return;
+      const list = selList(); if (!list.length) return;
+      const step = (S.tilePitch || 36) * S.scale / SLIDER_GAIN;
+      const i = Math.max(0, Math.min(list.length - 1, drag.start + Math.round((e.clientX - drag.sx) / step)));
+      if (list[i].id !== S.sel) { S.sel = list[i].id; updateSel(); }
+      return;
+    }
     const dx = (e.clientX - drag.sx) / S.scale, dy = (e.clientY - drag.sy) / S.scale;
     if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
     if (drag.moved) {
