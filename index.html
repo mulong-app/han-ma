@@ -207,48 +207,59 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .river.opp{justify-content:center}
 .portrait .center{padding:6px 0}
 .tile.ghost{visibility:hidden}
-#slider{position:relative;height:150px;touch-action:none;cursor:grab}
-#slider .bar{position:absolute;top:72px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
+#slider{position:relative;height:148px;touch-action:none;cursor:grab}
+#slider .bar{position:absolute;top:76px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
 #thumb{position:absolute;top:28px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
 #thumb .arr{position:absolute;top:-26px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:22px solid #ffe14d;filter:drop-shadow(0 0 4px rgba(255,225,77,.7))}
-#thumb .tile{--u:90px}
-#thumb .ph{width:90px;height:122px;border-radius:7px;background:rgba(255,255,255,.12)}
-.pctrl{display:grid;grid-template-columns:350px 1fr 160px;gap:8px;align-items:center;min-height:128px}
-.pub{position:relative;display:flex;flex-direction:column;gap:8px}
-.pblock{margin-top:4px;gap:4px}
-.pbar{border-top:1px solid rgba(216,180,90,.16);padding-top:8px;margin-top:6px;display:flex;flex-direction:column;gap:4px}
-.pbar1{display:flex;align-items:center;gap:10px}
-.pbar1 .nm{color:var(--gold2);font-weight:900;font-size:14px}
-.pbar .sp{flex:1}
-.pbar .passist{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#stage.portrait.inhand .corner{display:none}
-.prow{display:flex;gap:8px}
-.pbox{border:1px solid rgba(216,180,90,.16);background:rgba(0,0,0,.12);border-radius:12px;padding:8px}
-.priver{flex:none;width:340px;height:226px;--rw:48px;overflow:hidden}
-.priver .river{max-width:none;width:100%;min-height:0;gap:3px}
-.priver .river:not(.opp){justify-content:flex-start;align-content:flex-start}
+#thumb .tile{--u:80px}
+#thumb .ph{width:80px;height:109px;border-radius:7px;background:rgba(255,255,255,.12)}
+.pctrl{display:grid;grid-template-columns:450px 1fr;gap:12px;align-items:start;margin-top:4px}
+.pub{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px}
+.pinfo{display:flex;align-items:center;gap:10px;min-height:52px;padding-right:300px}
+.pinfo .nm{color:var(--gold2);font-weight:900;font-size:18px}
+.phand-c{justify-content:center}
+.phand-c .hand{flex-wrap:nowrap}
+.pmrow{height:50px;padding:4px 8px;display:flex;align-items:center;--rw:34px;margin:4px 0}
+.pmrow .melds{margin:0;flex-wrap:nowrap;gap:10px}
+.pmrow.opp{justify-content:flex-start}
+.pmrow:not(.opp){justify-content:flex-end}
+.pmrow.opp .melds{order:0;margin:0}
+.pbox{border:1px solid rgba(216,180,90,.16);background:rgba(0,0,0,.12);border-radius:12px}
+.priver{width:470px;height:248px;padding:6px 8px;--rw:56px;overflow:hidden;display:flex;justify-content:center}
+.priver .river{--rw:56px;max-width:none;width:calc((56px + 3px)*6 + 26px);min-height:0;gap:3px;justify-content:flex-start;align-content:flex-start}
 .priver .river.opp{justify-content:flex-start;align-content:flex-start}
-.pmeld{flex:1;height:226px;--rw:30px}
-.pmeld .melds{margin:0;flex-wrap:wrap;gap:10px;align-content:flex-start}
-.prow:first-child .pmeld .melds{align-content:flex-end;height:100%;justify-content:flex-end}
-.pstat{display:flex;justify-content:center;align-items:center;min-height:120px}
+.pstat{width:100%;box-sizing:border-box;display:flex;justify-content:center;align-items:center;min-height:100px;padding:4px;--tw:46px;--rw:36px}
 .pstat .center{padding:0}
-.pgrid{display:grid;grid-template-columns:repeat(3,108px);gap:8px}
-.pbtn{appearance:none;height:56px;border-radius:10px;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;letter-spacing:.06em;cursor:pointer;
-  color:rgba(246,226,160,.35);background:rgba(0,0,0,.18);border:1px solid rgba(216,180,90,.18);transition:all .12s}
+.portrait .mrow{padding:16px 0 0;justify-content:center}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pbtn{appearance:none;height:78px;border-radius:12px;font:900 26px/1 'Zen Kaku Gothic New',sans-serif;letter-spacing:.06em;cursor:pointer;
+  color:rgba(246,226,160,.35);background:rgba(0,0,0,.18);border:1px solid rgba(216,180,90,.2);transition:all .12s}
 .pbtn.on{color:#2a1a05;background:linear-gradient(180deg,#fbe7a6,#d8b45a 60%,#b88e2f);border-color:#f6e2a0;box-shadow:0 3px 0 #7a5a16,0 6px 14px rgba(0,0,0,.4)}
 .pbtn.on.win{color:#fff;background:linear-gradient(180deg,#ffb3b3,#e2434c 60%,#a81d26);border-color:#ff9a9a;box-shadow:0 3px 0 #5e0d12,0 0 18px rgba(255,80,80,.6);animation:pulse .7s infinite alternate}
 .pbtn.on.ghost{color:var(--ink);background:rgba(255,255,255,.08);border-color:rgba(246,226,160,.5);box-shadow:none}
 .pbtn.on:active{transform:translateY(2px)}
 .pbtn:disabled{cursor:default}
+.pright{display:flex;flex-direction:column;align-items:center;gap:10px}
+.fireph{width:150px;height:140px}
+.pbar{border-top:1px solid rgba(216,180,90,.16);padding-top:10px;margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.pbar1{display:flex;align-items:center;gap:12px}
+.pbar1 .nm{color:var(--gold2);font-weight:900;font-size:18px}
+.pbar .pts b{font-size:34px}
+.pbar .sp{flex:1}
+.pbar .btn.sm{font-size:16px;padding:10px 16px}
+.pbar .passist{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:18px}
+.portrait .pspace.bottom{flex:.6}
+#stage.portrait.inhand .corner{display:none}
+.portrait #board > *{flex-shrink:0}
+.portrait #board > .pspace{flex-shrink:1;min-height:0}
 .choosepop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;background:rgba(4,17,12,.94);border:1px solid var(--gold);border-radius:14px;padding:12px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--gold2);font-weight:900}
 .choosepop .tile{--u:70px}
 .pleft{display:flex;flex-direction:column;gap:8px}
 .pleft .msg{margin:0;font-size:15px}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px}
 .pbtns .btn{font-size:20px;padding:12px 22px}
-.parrows{display:flex;gap:14px;justify-content:center}
-.arrowbtn{appearance:none;width:66px;height:66px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+.parrows{display:flex;gap:12px;justify-content:center}
+.arrowbtn{appearance:none;width:92px;height:50px;border-radius:25px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   color:#ffe14d;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.12),rgba(0,0,0,.35));border:2px solid rgba(255,225,77,.55);
   box-shadow:0 4px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.15)}
 .arrowbtn:active{transform:scale(.94);background:rgba(255,225,77,.18)}
@@ -389,8 +400,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
    tile kind index: 0-8 萬 / 9-17 筒 / 18-26 索 / 27-33 東南西北白發中
    ========================================================= */
 const HAS_DOM = typeof document !== 'undefined';
-const HAND_MARGIN = 0.10;  // スマホ縦：手牌の左右の余白（画面幅に対する割合）
-const SLIDER_RATIO = 0.7;  // スマホ縦：スライダーの幅（手牌の幅に対する割合）
+const HAND_MARGIN = 0.01;  // スマホ縦：手牌の左右の余白（画面幅に対する割合）
+const SLIDER_RATIO = 0.58; // スマホ縦：スライダーの幅（手牌の幅に対する割合）
 const MAX_DRAWS = 15, MAX_HANDS = 10, START_CHIPS = 100, CPU_DELAY = 480;
 const KAN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const HONOR = ['東', '南', '西', '北', '白', '發', '中'];
@@ -956,10 +967,10 @@ function render() {
         </div>`;
   if (S.portrait) {
     const handW = 692 * (1 - 2 * HAND_MARGIN), barM = ((1 - (1 - 2 * HAND_MARGIN) * SLIDER_RATIO) / 2) * 100;
-    const u = Math.max(20, Math.min(40, Math.floor((handW - 8 - 14 * 2) / 14)));
+    const u = Math.max(20, Math.min(48, Math.floor((handW - 8 - 14 * 2) / 14)));
     S.tilePitch = u + 2;
-    const cSlots = 14 - 3 * S.melds.c.length;
-    const cu = Math.max(26, Math.min(44, Math.floor((680 - 12 - cSlots * 3) / cSlots)));
+    const cSlots = Math.max(14 - 3 * S.melds.c.length, S.hands.c.length + (S.drawn.c ? 0 : 1));
+    const cu = Math.max(20, Math.min(46, Math.floor((680 - 12 - cSlots * 3) / cSlots)));
     const fireOn = canSelect();
     const fireLabel = S.phase === 'riichiSelect' ? 'リーチ<br>打牌' : '打牌';
     const o = S.opts || {}, disc = myTurn && S.phase === 'discard', react = S.phase === 'react', rsel = myTurn && S.phase === 'riichiSelect';
@@ -974,50 +985,44 @@ function render() {
     const extra = disc && S.redealAvail && !S.river.p.length ? '<button class="btn ghost sm" data-act="redeal">配牌やり直し</button>' : '';
     const choose = S.phase === 'choose' && myTurn
       ? `<div class="choosepop"><span>選択ツモ（残り${S.chooseLeft}）</span><div class="choose">${[0, 1].map(i => `<div data-choose="${i}">${tileHTML(S.wall[i])}</div>`).join('')}</div></div>` : '';
-    const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
-    <div class="zone">
-      <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
-      <div class="handrow" style="--tw:${cu}px;justify-content:center"><div class="hand opp">${cpuTiles}</div></div>
+    <div class="pinfo">
+      <span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span><span class="pts c"><b>${S.chips.c}</b>チップ</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
     </div>
+    <div class="handrow phand-c" style="--tw:${cu}px"><div class="hand opp">${cpuTiles}</div></div>
+    <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
     <div class="pspace"></div>
     <div class="pub">
-      <div class="prow">
-        <div class="pbox pmeld"><div class="melds opp">${meldsHTML('c', true)}</div></div>
-        <div class="pbox priver"><div class="river opp">${riverHTML('c')}</div></div>
-      </div>
+      <div class="pbox priver"><div class="river opp">${riverHTML('c')}</div></div>
       <div class="pbox pstat"><div class="center">${centerHTML}</div></div>
-      <div class="prow">
-        <div class="pbox priver"><div class="river">${riverHTML('p')}</div></div>
-        <div class="pbox pmeld"><div class="melds">${meldsHTML('p', true)}</div></div>
-      </div>
+      <div class="pbox priver"><div class="river">${riverHTML('p')}</div></div>
       ${choose}
     </div>
-    <div class="zone pblock">
-      <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
-      <div class="timer"><i id="timerBar"></i></div>
-      <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
-    </div>
-    <div class="pspace"></div>
-    <div class="zone">
-      <div class="pctrl" id="pctrl">
-        <div class="pleft">${extra ? `<div>${extra}</div>` : ''}<div class="pgrid">${grid}</div></div>
+    <div class="pbox pmrow"><div class="melds">${meldsHTML('p', true)}</div></div>
+    <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
+    <div class="timer"><i id="timerBar"></i></div>
+    <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
+    <div class="pctrl" id="pctrl">
+      <div class="pleft">${extra ? `<div>${extra}</div>` : ''}<div class="pgrid">${grid}</div></div>
+      <div class="pright">
         <div class="parrows">
           <button class="arrowbtn" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}</button>
           <button class="arrowbtn" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}</button>
         </div>
-        <div></div>
-      </div>
-      <div class="pbar">
-        <div class="pbar1"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
-        <div class="passist">${assist || '&nbsp;'}</div>
+        <div class="fireph" id="fireph"></div>
       </div>
     </div>
+    <div class="pbar">
+      <div class="pbar1"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
+      <div class="passist">${assist || '&nbsp;'}</div>
+    </div>
+    <div class="pspace bottom"></div>
     <button id="fireBtn" class="${fireOn ? 'on' : ''}" style="left:${S.btnPos ? S.btnPos.x : 0}px;top:${S.btnPos ? S.btnPos.y : 0}px">${fireLabel}<small>ドラッグで移動</small></button>`;
     if (!S.btnPos) {
-      const pc = document.getElementById('pctrl'), tb = document.querySelector('.table');
-      const pr = pc.getBoundingClientRect(), tr = tb.getBoundingClientRect();
-      S.btnPos = { x: Math.round((pr.right - tr.left) / S.scale) - 10 - 150 - 4, y: Math.round((pr.top + pr.height / 2 - tr.top) / S.scale) - 75 };
+      const ph = document.getElementById('fireph'), tb = document.querySelector('.table');
+      const pr = ph.getBoundingClientRect(), tr = tb.getBoundingClientRect();
+      S.btnPos = { x: Math.round((pr.left + pr.width / 2 - tr.left) / S.scale) - 75, y: Math.round((pr.top + pr.height / 2 - tr.top) / S.scale) - 75 };
       const fb = document.getElementById('fireBtn'); fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px';
     }
     updateSel();
@@ -1117,7 +1122,7 @@ function fitStage() {
   S.portrait = por; st.classList.toggle('portrait', por);
   if (por) {
     let k = window.innerWidth / 720, H = window.innerHeight / k;
-    if (H < 1120) { H = Math.min(1400, Math.max(1120, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
+    if (H < 1490) { H = Math.min(1560, Math.max(1490, H)); k = Math.min(window.innerWidth / 720, window.innerHeight / H); }
     S.scale = k; S.stageH = H; st.style.height = H + 'px';
   } else {
     S.scale = Math.min(window.innerWidth / 1300, window.innerHeight / 740); S.stageH = 720; st.style.height = '';
@@ -1262,7 +1267,7 @@ if (HAS_DOM) {
     if (e.key === 'Escape' && document.getElementById('menu').classList.contains('show')) { toggleMenu(false); return; }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (S.paused) { S.menuPaused = false; setPause(false); } else setPause(true); }
   });
-  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos3') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
+  try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos4') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
     if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
@@ -1280,7 +1285,7 @@ if (HAS_DOM) {
   });
   const endDrag = () => {
     if (!drag) return; const d = drag; drag = null;
-    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos3', JSON.stringify(S.btnPos)); } catch (e) {} } }
+    if (d.type === 'btn') { if (!d.moved) fire(); else { try { localStorage.setItem('hanma_btnpos4', JSON.stringify(S.btnPos)); } catch (e) {} } }
   };
   document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
   window.addEventListener('resize', fitStage); fitStage();
