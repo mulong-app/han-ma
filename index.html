@@ -186,6 +186,7 @@ table.items td:last-child{text-align:right;font-weight:900}
 /* ---------- portrait (phone) ---------- */
 body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none;user-select:none}
 #stage.portrait{width:720px;height:1400px}
+.portrait .table{border-width:0;border-radius:0;box-shadow:inset 0 0 80px rgba(0,0,0,.55)}
 .portrait .table{padding:14px 14px 16px;--rw:40px}
 .portrait .brand{font-size:90px}
 .portrait #board{gap:6px}
@@ -200,18 +201,18 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .hand.mine{flex-wrap:nowrap;gap:2px}
 .portrait .hand.mine .tile.click:hover{transform:none}
 .portrait .hand.mine .tile.sel{transform:translateY(-10px);outline:3px solid #ffe14d;outline-offset:1px}
-.portrait .mrow{padding:14px 15% 0;justify-content:center}
+.portrait .mrow{padding:14px 0 0;justify-content:center}
 .portrait .pspace{flex:1}
 .portrait .river{--rw:44px;min-height:calc(44px*1.36*2 + 3px);justify-content:center}
 .portrait .river.opp{justify-content:center}
 .portrait .center{padding:6px 0}
 .tile.ghost{visibility:hidden}
-#slider{position:relative;height:122px;touch-action:none;cursor:grab}
-#slider .bar{position:absolute;left:15%;right:15%;top:62px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
-#thumb{position:absolute;top:26px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
+#slider{position:relative;height:170px;touch-action:none;cursor:grab}
+#slider .bar{position:absolute;top:80px;height:16px;border-radius:8px;background:#4a4f4c;box-shadow:inset 0 2px 4px rgba(0,0,0,.6)}
+#thumb{position:absolute;top:28px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none;transition:left .08s}
 #thumb .arr{position:absolute;top:-26px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-bottom:22px solid #ffe14d;filter:drop-shadow(0 0 4px rgba(255,225,77,.7))}
-#thumb .tile{--u:66px}
-#thumb .ph{width:66px;height:90px;border-radius:7px;background:rgba(255,255,255,.12)}
+#thumb .tile{--u:100px}
+#thumb .ph{width:100px;height:136px;border-radius:7px;background:rgba(255,255,255,.12)}
 .pctrl{display:grid;grid-template-columns:1fr 210px 170px;gap:8px;align-items:start;min-height:170px}
 .pleft{display:flex;flex-direction:column;gap:8px}
 .pleft .msg{margin:0;font-size:15px}
@@ -357,7 +358,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
    tile kind index: 0-8 萬 / 9-17 筒 / 18-26 索 / 27-33 東南西北白發中
    ========================================================= */
 const HAS_DOM = typeof document !== 'undefined';
-const SLIDER_GAIN = 2.5; // スライダーの拡大率：指の移動量の何倍で選択が動くか
+const HAND_MARGIN = 0.22;  // スマホ縦：手牌の左右の余白（画面幅に対する割合）
+const SLIDER_RATIO = 0.7;  // スマホ縦：スライダーの幅（手牌の幅に対する割合）
 const MAX_DRAWS = 15, MAX_HANDS = 10, START_CHIPS = 100, CPU_DELAY = 480;
 const KAN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const HONOR = ['東', '南', '西', '北', '白', '發', '中'];
@@ -923,7 +925,8 @@ function render() {
   if (S.portrait) {
     const meldN = S.melds.p.reduce((a, m) => a + m.tiles.length, 0), slots = S.hands.p.length + meldN;
     const fixedGap = 8 + S.melds.p.length * 10 + (meldN ? 8 : 0);
-    const u = Math.max(24, Math.min(40, Math.floor((480 - fixedGap - slots * 2) / slots)));
+    const handW = 692 * (1 - 2 * HAND_MARGIN), barM = ((1 - (1 - 2 * HAND_MARGIN) * SLIDER_RATIO) / 2) * 100;
+    const u = Math.max(18, Math.min(40, Math.floor((handW - fixedGap - slots * 2) / slots)));
     S.tilePitch = u + 2;
     const cMeldN = S.melds.c.reduce((a, m) => a + m.tiles.length, 0), cSlots = (14 - 3 * S.melds.c.length) + cMeldN;
     const cu = Math.max(26, Math.min(42, Math.floor((680 - 12 - S.melds.c.length * 10 - (cMeldN ? 8 : 0) - cSlots * 3) / cSlots)));
@@ -943,9 +946,9 @@ function render() {
     <div class="zone">
       <div class="who"><span class="nm">あなた</span><span class="pts"><b>${S.chips.p}</b>チップ</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="passist">${assist}</div>
-      <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
+      <div class="handrow mrow" style="--tw:${u}px;padding-left:${HAND_MARGIN * 100}%;padding-right:${HAND_MARGIN * 100}%"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
-      <div id="slider"><div class="bar"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
+      <div id="slider"><div class="bar" style="left:${barM}%;right:${barM}%"></div><div id="thumb"><span class="arr"></span><div class="ph"></div></div></div>
       <div class="pctrl" id="pctrl">
         <div class="pleft"><p class="msg">${msg}</p><div class="pbtns">${acts}</div></div>
         <div class="parrows"><button class="arrowbtn l" data-act="selL" aria-label="左の牌"></button><button class="arrowbtn r" data-act="selR" aria-label="右の牌"></button></div>
@@ -1010,10 +1013,17 @@ function updateSel() {
   const th = document.getElementById('thumb'), sl = document.getElementById('slider'); if (!th || !sl) return;
   const t = on && S.hands.p.find(x => x.id === S.sel);
   th.innerHTML = '<span class="arr"></span>' + (t ? tileHTML(t) : '<div class="ph"></div>');
-  const el = on && document.querySelector('.hand.mine .tile.sel');
-  const sr = sl.getBoundingClientRect();
-  if (el) { const r = el.getBoundingClientRect(); th.style.left = ((r.left + r.width / 2 - sr.left) / S.scale) + 'px'; }
-  else th.style.left = '50%';
+  const list = on ? selList() : [], i = list.findIndex(x => x.id === S.sel);
+  const sr = sl.getBoundingClientRect(), br = sl.querySelector('.bar').getBoundingClientRect();
+  const frac = i < 0 ? 0.5 : list.length > 1 ? i / (list.length - 1) : 0.5;
+  th.style.left = ((br.left - sr.left + frac * br.width) / S.scale) + 'px';
+}
+function selectByBar(x) {
+  if (!canSelect()) return;
+  const list = selList(), bar = document.querySelector('#slider .bar'); if (!list.length || !bar) return;
+  const r = bar.getBoundingClientRect(), frac = Math.max(0, Math.min(1, (x - r.left) / r.width));
+  const t = list[Math.round(frac * (list.length - 1))];
+  if (t.id !== S.sel) { S.sel = t.id; updateSel(); }
 }
 function selectNearest(x) {
   if (!canSelect()) return;
@@ -1046,8 +1056,13 @@ function fitStage() {
   const por = window.innerHeight > window.innerWidth;
   const changed = por !== S.portrait;
   S.portrait = por; st.classList.toggle('portrait', por);
-  const W = por ? 720 : 1280, H = por ? 1400 : 720;
-  S.scale = Math.min(window.innerWidth / (W + 20), window.innerHeight / (H + 20));
+  if (por) {
+    let k = window.innerWidth / 720, H = window.innerHeight / k;
+    if (H < 1100) { H = 1100; k = window.innerHeight / 1100; }
+    S.scale = k; S.stageH = H; st.style.height = H + 'px';
+  } else {
+    S.scale = Math.min(window.innerWidth / 1300, window.innerHeight / 740); S.stageH = 720; st.style.height = '';
+  }
   st.style.transform = `scale(${S.scale})`;
   if (changed) render(); else updateSel();
 }
@@ -1182,27 +1197,16 @@ if (HAS_DOM) {
   try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
-    if (e.target.closest('#slider')) {
-      const list = canSelect() ? selList() : [];
-      drag = { type: 'slider', sx: e.clientX, start: Math.max(0, list.findIndex(t => t.id === S.sel)) };
-      e.preventDefault(); return;
-    }
+    if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
     if (e.target.closest('#fireBtn')) { drag = { type: 'btn', sx: e.clientX, sy: e.clientY, ox: S.btnPos ? S.btnPos.x : 0, oy: S.btnPos ? S.btnPos.y : 0, moved: false }; e.preventDefault(); }
   });
   document.addEventListener('pointermove', e => {
     if (!drag) return;
-    if (drag.type === 'slider') {
-      if (!canSelect()) return;
-      const list = selList(); if (!list.length) return;
-      const step = (S.tilePitch || 36) * S.scale / SLIDER_GAIN;
-      const i = Math.max(0, Math.min(list.length - 1, drag.start + Math.round((e.clientX - drag.sx) / step)));
-      if (list[i].id !== S.sel) { S.sel = list[i].id; updateSel(); }
-      return;
-    }
+    if (drag.type === 'slider') { selectByBar(e.clientX); return; }
     const dx = (e.clientX - drag.sx) / S.scale, dy = (e.clientY - drag.sy) / S.scale;
     if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
     if (drag.moved) {
-      S.btnPos = { x: Math.max(0, Math.min(700 - 150, drag.ox + dx)), y: Math.max(0, Math.min(1380 - 150, drag.oy + dy)) };
+      S.btnPos = { x: Math.max(0, Math.min(720 - 150, drag.ox + dx)), y: Math.max(0, Math.min((S.stageH || 1400) - 150, drag.oy + dy)) };
       const fb = document.getElementById('fireBtn'); if (fb) { fb.style.left = S.btnPos.x + 'px'; fb.style.top = S.btnPos.y + 'px'; }
     }
   });
