@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -297,7 +297,15 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #menu details summary{font-size:15px}
 .pctrl3{display:grid;grid-template-columns:116px 1fr 116px;gap:10px;margin-top:14px;height:262px}
 .pcol{display:flex;flex-direction:column;gap:8px}
-.pcol .pbtn{flex:1;height:auto;font-size:22px;letter-spacing:0;white-space:nowrap;padding:0}
+.pcol .pbtn{flex:1;height:auto;font-size:24px;letter-spacing:0;white-space:nowrap;padding:0}
+.winpop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;display:flex;align-items:center;gap:18px;
+  background:rgba(20,4,6,.92);border:2px solid #ff8a8a;border-radius:20px;padding:16px 22px;box-shadow:0 0 40px rgba(255,60,60,.45),0 20px 50px rgba(0,0,0,.6);animation:popin .22s ease-out}
+@keyframes popin{from{transform:translate(-50%,-50%) scale(.7);opacity:0}}
+.winpop .wt .tile{--u:74px}
+.wbtn{position:relative;appearance:none;border:0;cursor:pointer;width:190px;height:120px;border-radius:18px;font:900 54px/1 'Noto Serif JP',serif;letter-spacing:.12em;color:#fff;
+  background:linear-gradient(180deg,#ffb3b3,#e2434c 55%,#a81d26);box-shadow:0 5px 0 #5e0d12,0 0 26px rgba(255,80,80,.7);animation:pulse .7s infinite alternate}
+.wskip{position:relative;appearance:none;cursor:pointer;height:120px;width:100px;border-radius:16px;font:900 22px/1.2 'Zen Kaku Gothic New',sans-serif;
+  color:var(--ink);background:rgba(255,255,255,.08);border:1px solid rgba(246,226,160,.45)}
 #car{position:relative;overflow:hidden;border-radius:16px;touch-action:none;cursor:grab;
   background:radial-gradient(ellipse at center,rgba(0,0,0,.12),rgba(0,0,0,.38));border:1px solid rgba(216,180,90,.28)}
 #car:not(.on){opacity:.45;cursor:default}
@@ -451,7 +459,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
       <label class="set">打牌の操作
         <select id="setDiscard"><option value="swipe" selected>上スワイプ</option><option value="tap">タップ</option></select></label>
-      <label class="set">手牌の選択中タップで打牌 <input type="checkbox" id="setHandTap"></label>
+      <label class="set">手牌の選択中タップで打牌 <input type="checkbox" id="setHandTap" checked></label>
       <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
@@ -507,7 +515,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, discard: 'swipe', handTap: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, discard: 'swipe', handTap: true }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -712,13 +720,13 @@ function drawOpts(who) {
   return o;
 }
 function playerOnDraw() {
-  S.phase = 'discard'; S.opts = drawOpts('p'); render();
+  S.phase = 'discard'; S.opts = drawOpts('p'); S.winDismissed = false; render();
   if (S.riichi.p) {
     if (S.opts.tsumo) startTimer(() => win('p', 'tsumo'));
     else later(() => { if (S.phase === 'discard' && S.turn === 'p') discardTile('p', S.drawn.p); }, 420);
     return;
   }
-  startTimer(() => { if (S.opts.tsumo) win('p', 'tsumo'); else discardTile('p', S.drawn.p); });
+  startTimer(() => { if (S.opts.tsumo && !S.winDismissed) win('p', 'tsumo'); else discardTile('p', S.drawn.p); });
 }
 function onHandClick(id) {
   if (S.turn !== 'p' || S.ended) return;
@@ -743,8 +751,8 @@ function playerReact(t) {
   const o = { ron };
   if (!S.riichi.p) { o.pon = c[t.k] >= 2; o.kan = c[t.k] >= 3 && S.rinshan.length > 0; }
   if (!o.ron && !o.pon && !o.kan) return later(() => beginTurn('p'), 120);
-  S.phase = 'react'; S.reactTile = t; S.opts = o; render();
-  startTimer(() => { if (o.ron) win('p', 'ron', t); else reactSkip(); });
+  S.phase = 'react'; S.reactTile = t; S.opts = o; S.winDismissed = false; render();
+  startTimer(() => { if (o.ron && !S.winDismissed) win('p', 'ron', t); else reactSkip(); });
 }
 function reactSkip() { if (S.phase !== 'react') return; clearTimer(); S.phase = 'wait'; beginTurn('p'); }
 function doRedeal() {
@@ -1018,7 +1026,7 @@ function render() {
     if (S.portrait && canSelect() && t.id === S.sel) cls += ' sel';
     return tileHTML(t, { hand: true, cls });
   };
-  const myTiles = mh.rest.map(mine).join('') + (mh.dt ? '<div class="gap"></div>' + mine(mh.dt) : '');
+  const myTiles = mh.rest.map(mine).join('') + '<div class="gap"></div>' + (mh.dt ? mine(mh.dt) : '<div class="tile ghost"></div>');
 
   /* actions */
   let acts = '', msg = '';
@@ -1073,6 +1081,12 @@ function render() {
       B('pon', 'ポン', react && o.pon) +
       B('pkan', 'カン', (disc && !S.riichi.p && (o.kans || []).length > 0) || (react && o.kan)) +
       B('pskip', (react && o.ron) || (disc && S.riichi.p) ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost');
+    const winKind = !S.winDismissed ? ((disc && o.tsumo) ? 'tsumo' : (react && o.ron) ? 'ron' : '') : '';
+    const winTile = winKind === 'tsumo' ? S.hands.p.find(t => t.id === S.drawn.p) : winKind === 'ron' ? S.reactTile : null;
+    const winpop = winKind ? `<div class="winpop" role="dialog" aria-label="和了できます">
+        <div class="wt">${winTile ? tileHTML(winTile) : ''}</div>
+        <button class="wbtn" data-act="${winKind}">${winKind === 'tsumo' ? 'ツモ' : 'ロン'}${H}</button>
+        <button class="wskip" data-act="winDismiss">見逃し${H}</button></div>` : '';
     const extra = disc && S.redealAvail && !S.river.p.length ? '<button class="btn ghost sm" data-act="redeal">配牌やり直し</button>' : '';
     const choose = S.phase === 'choose' && myTurn
       ? `<div class="choosepop"><span>選択ツモ（残り${S.chooseLeft}）</span><div class="choose">${[0, 1].map(i => `<div data-choose="${i}">${tileHTML(S.wall[i])}</div>`).join('')}</div></div>` : '';
@@ -1089,19 +1103,20 @@ function render() {
       <div class="pbox pstat"><div class="center">${centerHTML}</div></div>
       <div class="pbox priver"><div class="river">${riverHTML('p')}</div></div>
       ${choose}
+      ${winpop}
     </div>
     <div class="pbox pmrow"><div class="melds">${meldsHTML('p', true)}</div></div>
     <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}${canSelect() ? H : ''}</div></div>
     <div class="timer"><i id="timerBar"></i></div>
     <div class="pctrl3" id="pctrl">
-      <div class="pcol">${B('tsumo', 'ツモ', disc && o.tsumo, 'win')}${B('ron', 'ロン', react && o.ron, 'win')}${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}</div>
+      <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${B('pon', 'ポン', react && o.pon)}</div>
       <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''} ${S.settings.discard === 'swipe' ? 'swipe' : 'tapmode'}">${canSelect() ? H : ''}<div class="carup" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 14 L12 8 L18 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div id="cartrack">${carList().map((t, i) => `<div class="ct" data-ci="${i}" style="left:${i * CAR_PITCH}px">${tileHTML(t)}</div>`).join('')}</div>
         <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}${H}</button>
         <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}${H}</button>
         ${extra ? `<div class="carx">${extra}</div>` : ''}
       </div>
-      <div class="pcol">${B('pon', 'ポン', react && o.pon)}${B('pkan', 'カン', (disc && !S.riichi.p && (o.kans || []).length > 0) || (react && o.kan))}${B('pskip', (react && o.ron) || (disc && S.riichi.p) ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
+      <div class="pcol">${B('pkan', 'カン', (disc && !S.riichi.p && (o.kans || []).length > 0) || (react && o.kan))}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
     </div>
     <div class="pbar">
       <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
@@ -1553,6 +1568,7 @@ function act(a, ds) {
       if (S.phase === 'react' && S.opts.kan) claim('p', S.reactTile, 'minkan');
       else if (S.phase === 'discard' && (S.opts.kans || []).length) { const st = S.hands.p.find(t => t.id === S.sel); selfKan('p', st && S.opts.kans.includes(st.k) ? st.k : S.opts.kans[0]); }
       break;
+    case 'winDismiss': S.winDismissed = true; render(); break;
     case 'pskip':
       if (S.phase === 'react') reactSkip(); else if (S.phase === 'discard' && S.riichi.p) discardTile('p', S.drawn.p);
       break;
