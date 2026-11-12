@@ -267,6 +267,17 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .pbar .passist{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:18px}
 .portrait .pspace.bottom{flex:.6}
 #stage.portrait.inhand .corner{display:none}
+.portrait #overlay .panel{zoom:1.6;max-width:430px;padding:18px 20px}
+.portrait #menu{zoom:1.6;width:390px;max-height:860px;top:40px;right:10px}
+#menu{background:#05140e !important}
+#menu input[type=checkbox]{width:22px;height:22px;accent-color:#d8b45a}
+.portrait .corner{zoom:1.5;top:34px !important}
+.portrait #pause > *{zoom:1.4}
+#overlay .panel .opt{font-size:15px}
+#overlay .panel h3{font-size:14px}
+#menu label.set{font-size:15px}
+#menu select{font-size:14px;padding:6px 8px}
+#menu details summary{font-size:15px}
 .pctrl3{display:grid;grid-template-columns:116px 1fr 116px;gap:10px;margin-top:14px;height:262px}
 .pcol{display:flex;flex-direction:column;gap:8px}
 .pcol .pbtn{flex:1;height:auto;font-size:22px;letter-spacing:0;white-space:nowrap;padding:0}
@@ -407,7 +418,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">CPUの強さ
         <select id="setLevel"><option value="weak">弱</option><option value="mid" selected>中</option><option value="strong">強</option></select></label>
       <label class="set">持ち時間
-        <select id="setTime"><option value="0">なし</option><option value="5">5秒</option><option value="8" selected>8秒</option><option value="12">12秒</option></select></label>
+        <select id="setTime"><option value="0">なし</option><option value="5">5秒</option><option value="8" selected>8秒</option><option value="12">12秒</option><option value="20">20秒</option></select></label>
       <label class="set">画面レイアウト
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
@@ -686,7 +697,7 @@ function playerOnDraw() {
 }
 function onHandClick(id) {
   if (S.turn !== 'p' || S.ended) return;
-  if (S.portrait) { if (canSelect() && selList().some(t => t.id === id)) { S.sel = id; updateSel(true); } return; }
+  if (S.portrait) { if (canSelect() && selList().some(t => t.id === id)) { S.sel = id; carSnap(); } return; }
   const t = S.hands.p.find(x => x.id === id); if (!t) return;
   if (S.phase === 'discard' && !S.riichi.p) discardTile('p', id);
   else if (S.phase === 'riichiSelect' && S.opts.riichiTiles.includes(t.k)) discardTile('p', id, true);
@@ -1189,7 +1200,7 @@ function handPick(x) {
     const r = el.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - x);
     if (d < bd) { bd = d; best = el; }
   });
-  if (best && +best.dataset.id !== S.sel) { S.sel = +best.dataset.id; highlightHand(); haptic('tick'); carAnimateTo(carIndex()); }
+  if (best && +best.dataset.id !== S.sel) { S.sel = +best.dataset.id; haptic('tick'); carSnap(); }
 }
 function highlightHand() {
   const on = canSelect();
@@ -1331,6 +1342,14 @@ function cutin(text, who, tier, key) {
 /* ---------- overlays ---------- */
 function showOverlay(html) { if (!HAS_DOM) return; const o = document.getElementById('overlay'); o.innerHTML = html; o.classList.add('show'); }
 function hideOverlay() { if (!HAS_DOM) return; document.getElementById('overlay').classList.remove('show'); }
+function settingsHTML() {
+  const T = S.settings.time, A = S.settings.assist;
+  return `<h3>持ち時間</h3>
+    <div class="opts">${[[0, 'OFF'], [5, '5秒'], [8, '8秒'], [12, '12秒'], [20, '20秒']].map(([v, l]) => `<button class="opt ${T === v ? 'on' : ''}" data-act="time" data-v="${v}">${l}</button>`).join('')}</div>
+    <h3>AI補助（おすすめ牌に「勧」を表示）</h3>
+    <div class="opts"><button class="opt ${A ? 'on' : ''}" data-act="assist" data-v="1">ON</button><button class="opt ${!A ? 'on' : ''}" data-act="assist" data-v="0">OFF</button></div>`;
+}
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ time: S.settings.time, assist: S.settings.assist, level: S.settings.level })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1338,6 +1357,7 @@ function showTitle() {
     <p>和了などでゲージがたまり、局の開始前に<b style="color:var(--gold2)">必殺技</b>を使えます。</p>
     <h3>CPUの強さ</h3>
     <div class="opts">${['weak', 'mid', 'strong'].map(l => `<button class="opt ${S.settings.level === l ? 'on' : ''}" data-act="level" data-v="${l}">${{ weak: '弱', mid: '中', strong: '強' }[l]}<small>${{ weak: 'ときどき悪手', mid: '効率重視', strong: 'リーチに少し守る' }[l]}</small></button>`).join('')}</div>
+    ${settingsHTML()}
     <div class="row"><span style="color:var(--muted);font-size:13px">持ちチップ ${START_CHIPS} · 全${MAX_HANDS}局</span>${btn('begin', 'ゲーム開始 ▶')}</div>
   </div>`);
 }
@@ -1357,6 +1377,7 @@ function showPrehand() {
       <button class="opt ${!S.pendingSkill ? 'on' : ''}" data-act="skill" data-v="">使わない</button>
       ${Object.entries(SKILLS).map(([id, s]) => `<button class="opt ${S.pendingSkill === id ? 'on' : ''}" data-act="skill" data-v="${id}" ${s.cost > S.gauge ? 'disabled' : ''}><span class="lv">Lv${s.lv}</span>${s.name} <span style="color:var(--muted);font-weight:500">-${s.cost}</span><small>${s.desc}</small></button>`).join('')}
     </div>
+    ${settingsHTML()}
     <div class="row"><span style="color:var(--muted);font-size:12px">${maxBet < 20 * S.bet ? '※相手の残りチップ以上は移動しません' : ''}</span>${btn('start', '配牌 ▶')}</div>
   </div>`);
 }
@@ -1394,8 +1415,15 @@ function resetGame() {
 /* ---------- input ---------- */
 function act(a, ds) {
   switch (a) {
-    case 'level': S.settings.level = ds.v; document.getElementById('setLevel').value = ds.v; showTitle(); break;
+    case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
     case 'begin': showPrehand(); break;
+    case 'time': case 'assist': {
+      if (a === 'time') { S.settings.time = +ds.v; document.getElementById('setTime').value = ds.v; }
+      else { S.settings.assist = ds.v === '1'; document.getElementById('setAssist').checked = S.settings.assist; }
+      saveSettings();
+      if (document.querySelector('#overlay [data-act="begin"]')) showTitle(); else showPrehand();
+      break;
+    }
     case 'bet': S.bet = +ds.v; showPrehand(); break;
     case 'skill': S.pendingSkill = ds.v || null; showPrehand(); break;
     case 'start':
@@ -1437,14 +1465,14 @@ if (HAS_DOM) {
     const ch = e.target.closest('[data-choose]'); if (ch) { pickChoose(+ch.dataset.choose); return; }
     const t = e.target.closest('.tile[data-hand="p"]'); if (t) onHandClick(+t.dataset.id);
   });
-  document.getElementById('setLevel').addEventListener('change', e => { S.settings.level = e.target.value; render(); });
-  document.getElementById('setTime').addEventListener('change', e => { S.settings.time = +e.target.value; });
+  document.getElementById('setLevel').addEventListener('change', e => { S.settings.level = e.target.value; saveSettings(); render(); });
+  document.getElementById('setTime').addEventListener('change', e => { S.settings.time = +e.target.value; saveSettings(); });
   try { const lay = localStorage.getItem('hanma_layout'); if (lay) { S.settings.layout = lay; document.getElementById('setLayout').value = lay; } } catch (e) {}
   document.getElementById('setLayout').addEventListener('change', e => { S.settings.layout = e.target.value; try { localStorage.setItem('hanma_layout', e.target.value); } catch (er) {} fitStage(); });
   try { const hp = localStorage.getItem('hanma_haptic'); if (hp !== null) { S.settings.haptic = hp === '1'; document.getElementById('setHaptic').checked = S.settings.haptic; } } catch (e) {}
   document.getElementById('setHaptic').addEventListener('change', e => { S.settings.haptic = e.target.checked; try { localStorage.setItem('hanma_haptic', e.target.checked ? '1' : '0'); } catch (er) {} if (e.target.checked) haptic('call'); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
-  document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; render(); });
+  document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; saveSettings(); render(); });
   document.addEventListener('keydown', e => {
     if (S.portrait && e.key === 'ArrowLeft') { moveSel(-1); return; }
     if (S.portrait && e.key === 'ArrowRight') { moveSel(1); return; }
@@ -1452,6 +1480,14 @@ if (HAS_DOM) {
     if (e.key === 'Escape' && document.getElementById('menu').classList.contains('show')) { toggleMenu(false); return; }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') { if (S.paused) { S.menuPaused = false; setPause(false); } else setPause(true); }
   });
+  try {
+    const st = JSON.parse(localStorage.getItem('hanma_settings') || 'null');
+    if (st) {
+      if (typeof st.time === 'number') { S.settings.time = st.time; document.getElementById('setTime').value = String(st.time); }
+      if (typeof st.assist === 'boolean') { S.settings.assist = st.assist; document.getElementById('setAssist').checked = st.assist; }
+      if (st.level) { S.settings.level = st.level; document.getElementById('setLevel').value = st.level; }
+    }
+  } catch (e) {}
   try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos6') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
   let drag = null;
   document.addEventListener('pointerdown', e => {
