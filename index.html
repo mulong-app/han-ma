@@ -273,7 +273,9 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #car{position:relative;overflow:hidden;border-radius:16px;touch-action:none;cursor:grab;
   background:radial-gradient(ellipse at center,rgba(0,0,0,.12),rgba(0,0,0,.38));border:1px solid rgba(216,180,90,.28)}
 #car:not(.on){opacity:.45;cursor:default}
-#cartrack{position:absolute;top:50%;left:0;height:0;will-change:transform}
+#cartrack{position:absolute;top:50%;left:0;height:0;will-change:transform;backface-visibility:hidden}
+#cartrack .ct{will-change:transform,opacity}
+.portrait .hand.mine{touch-action:none}
 #cartrack .ct{position:absolute;top:0;width:140px;transform-origin:center center}
 #cartrack .ct .tile{--u:140px;position:absolute;top:0;transform:translateY(-50%)}
 #car.on .ct.cur .tile{outline:4px solid #ffe14d;outline-offset:2px;box-shadow:0 0 22px 4px rgba(255,225,77,.45),0 2px 0 #b9a16b,0 4px 0 #2d6a4d,0 6px 9px rgba(0,0,0,.45)}
@@ -1154,23 +1156,40 @@ function haptic(kind) {
 }
 /* ---------- 選択カルーセル（スマホ縦） ---------- */
 const CAR_U = 140, CAR_PITCH = 156;
-const car = { pos: 0, raf: 0 };
+const car = { pos: 0, raf: 0, els: null, track: null, W: 0, target: 0, mode: '' };
+const CAR_GAIN = 1.8;      // 指の移動量に対する牌送りの軽さ（大きいほど少ない移動で送れる）
+const CAR_FRICTION = 0.9962; // フリックの減速（1に近いほど長く滑る）
 function carList() {
   if (canSelect()) return selList();
   const mh = sortedHand('p'); return mh.dt ? mh.rest.concat([mh.dt]) : mh.rest;
 }
-function carStop() { if (car.raf) cancelAnimationFrame(car.raf); car.raf = 0; }
+function carStop() { if (car.raf) cancelAnimationFrame(car.raf); car.raf = 0; car.mode = ''; }
 function applyCar() {
-  const tr = document.getElementById('cartrack'), box = document.getElementById('car'); if (!tr || !box) return;
-  const W = box.clientWidth;
-  tr.style.transform = `translateX(${W / 2 - CAR_U / 2 - car.pos * CAR_PITCH}px)`;
+  let tr = car.track;
+  if (!tr || !tr.isConnected) {
+    tr = car.track = document.getElementById('cartrack'); if (!tr) return;
+    car.els = [...tr.querySelectorAll('.ct')]; car.W = document.getElementById('car').clientWidth;
+  }
+  tr.style.transform = `translate3d(${car.W / 2 - CAR_U / 2 - car.pos * CAR_PITCH}px,0,0)`;
   const cur = Math.round(car.pos);
-  tr.querySelectorAll('.ct').forEach(el => {
-    const i = +el.dataset.ci, d = Math.abs(i - car.pos);
+  for (let i = 0; i < car.els.length; i++) {
+    const el = car.els[i], d = Math.abs(i - car.pos);
     el.style.transform = `scale(${1 - Math.min(d, 1) * 0.2})`;
     el.style.opacity = String(1 - Math.min(d, 1.6) * 0.38);
-    el.classList.toggle('cur', i === cur);
+    if ((i === cur) !== el.classList.contains('cur')) el.classList.toggle('cur', i === cur);
+  }
+}
+function handPick(x) {
+  // 手牌の上を指でなぞって選択：指の真下の牌を選び、大きな牌はなめらかに追従
+  if (!canSelect()) return;
+  const ok = new Set(selList().map(t => t.id));
+  let best = null, bd = 1e9;
+  document.querySelectorAll('.hand.mine .tile[data-id]').forEach(el => {
+    if (!ok.has(+el.dataset.id)) return;
+    const r = el.getBoundingClientRect(), d = Math.abs(r.left + r.width / 2 - x);
+    if (d < bd) { bd = d; best = el; }
   });
+  if (best && +best.dataset.id !== S.sel) { S.sel = +best.dataset.id; highlightHand(); haptic('tick'); carAnimateTo(carIndex()); }
 }
 function highlightHand() {
   const on = canSelect();
@@ -1183,26 +1202,31 @@ function carSync() {
   if (list[i].id !== S.sel) { S.sel = list[i].id; highlightHand(); haptic('tick'); }
 }
 function carIndex() { const list = carList(); const i = list.findIndex(t => t.id === S.sel); return i < 0 ? Math.max(0, list.length - 1) : i; }
-function carSnap() { carStop(); car.pos = carIndex(); applyCar(); highlightHand(); }
+function carSnap() { carStop(); car.track = null; car.pos = car.target = carIndex(); applyCar(); highlightHand(); }
 function carAnimateTo(target) {
-  carStop();
-  const from = car.pos, t0 = performance.now(), dur = 200;
+  // 目標位置へ指数的に追従（連続で目標が変わっても途切れずなめらか）
+  car.target = target;
+  if (car.mode === 'follow') return;
+  carStop(); car.mode = 'follow';
+  let last = performance.now();
   const step = now => {
-    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    car.pos = from + (target - from) * e; applyCar(); carSync();
-    if (k < 1) car.raf = requestAnimationFrame(step); else { car.raf = 0; car.pos = target; applyCar(); }
+    const dt = Math.min(40, now - last); last = now;
+    car.pos += (car.target - car.pos) * (1 - Math.exp(-dt / 55));
+    if (Math.abs(car.target - car.pos) < 0.002) { car.pos = car.target; applyCar(); carSync(); car.raf = 0; car.mode = ''; return; }
+    applyCar(); carSync();
+    car.raf = requestAnimationFrame(step);
   };
   car.raf = requestAnimationFrame(step);
 }
 function carFling(v) { // v: 牌/ms
-  carStop();
+  carStop(); car.mode = 'fling';
   const n = carList().length; let last = performance.now();
   const step = now => {
     const dt = Math.min(32, now - last); last = now;
-    car.pos += v * dt; v *= Math.pow(0.9925, dt);
+    car.pos += v * dt; v *= Math.pow(CAR_FRICTION, dt);
     if (car.pos < 0) { car.pos = 0; v = 0; } if (car.pos > n - 1) { car.pos = n - 1; v = 0; }
     applyCar(); carSync();
-    if (Math.abs(v) < 0.0012) { car.raf = 0; carAnimateTo(Math.round(car.pos)); return; }
+    if (Math.abs(v) < 0.0016) { car.raf = 0; car.mode = ''; carAnimateTo(Math.round(car.pos)); return; }
     car.raf = requestAnimationFrame(step);
   };
   car.raf = requestAnimationFrame(step);
@@ -1434,8 +1458,12 @@ if (HAS_DOM) {
     if (e.target.closest('#car') && !e.target.closest('[data-act]')) {
       if (!canSelect()) return;
       carStop();
-      drag = { type: 'car', sx: e.clientX, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target };
+      drag = { type: 'car', sx: e.clientX, x: e.clientX, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target, raf: 0 };
       e.preventDefault(); return;
+    }
+    if (S.portrait && e.target.closest('.hand.mine')) {
+      if (!canSelect()) return;
+      drag = { type: 'hand' }; handPick(e.clientX); e.preventDefault(); return;
     }
     if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
     if (e.target.closest('#fireBtn')) { drag = { type: 'btn', sx: e.clientX, sy: e.clientY, ox: S.btnPos ? S.btnPos.x : 0, oy: S.btnPos ? S.btnPos.y : 0, moved: false }; e.preventDefault(); }
@@ -1443,13 +1471,20 @@ if (HAS_DOM) {
   document.addEventListener('pointermove', e => {
     if (!drag) return;
     if (drag.type === 'car') {
-      const dx = e.clientX - drag.sx; if (Math.abs(dx) > 6) drag.moved = true;
-      const n = carList().length; let p = drag.sp - dx / (CAR_PITCH * S.scale);
-      if (p < 0) p *= 0.35; else if (p > n - 1) p = n - 1 + (p - (n - 1)) * 0.35;
-      car.pos = p; applyCar(); carSync();
-      const now = performance.now(); drag.hist.push([now, e.clientX]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 90) drag.hist.shift();
+      drag.x = e.clientX; if (Math.abs(drag.x - drag.sx) > 6) drag.moved = true;
+      const now = performance.now(); drag.hist.push([now, e.clientX]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 70) drag.hist.shift();
+      if (!drag.raf) {
+        const d0 = drag;
+        d0.raf = requestAnimationFrame(() => {
+          d0.raf = 0; if (drag !== d0) return;
+          const n = carList().length; let p = d0.sp - (d0.x - d0.sx) * CAR_GAIN / (CAR_PITCH * S.scale);
+          if (p < 0) p *= 0.35; else if (p > n - 1) p = n - 1 + (p - (n - 1)) * 0.35;
+          car.pos = p; applyCar(); carSync();
+        });
+      }
       return;
     }
+    if (drag.type === 'hand') { handPick(e.clientX); return; }
     if (drag.type === 'slider') { selectByBar(e.clientX); return; }
     const dx = (e.clientX - drag.sx) / S.scale, dy = (e.clientY - drag.sy) / S.scale;
     if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
@@ -1466,9 +1501,10 @@ if (HAS_DOM) {
         if (ct) { const i = +ct.dataset.ci; if (i === Math.round(car.pos)) fire(); else carAnimateTo(i); }
         return;
       }
+      if (d.raf) cancelAnimationFrame(d.raf);
       const h = d.hist, a = h[0], b = h[h.length - 1], dt = b[0] - a[0];
-      const v = dt > 0 ? -(b[1] - a[1]) / dt / (CAR_PITCH * S.scale) : 0;
-      if (Math.abs(v) > 0.0015) carFling(v); else carAnimateTo(Math.max(0, Math.min(carList().length - 1, Math.round(car.pos))));
+      const v = dt > 0 && performance.now() - b[0] < 80 ? -(b[1] - a[1]) * CAR_GAIN / dt / (CAR_PITCH * S.scale) : 0;
+      if (Math.abs(v) > 0.002) carFling(v); else carAnimateTo(Math.max(0, Math.min(carList().length - 1, Math.round(car.pos))));
       return;
     }
     if (d.type === 'slider' && IS_IOS) haptic('tick');
