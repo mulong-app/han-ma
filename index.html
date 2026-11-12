@@ -177,6 +177,10 @@ table.items td:last-child{text-align:right;font-weight:900}
 .table{padding-top:48px !important}
 .portrait .table{padding-top:52px !important}
 .corner{top:44px !important}
+/* ---------- iOS haptic overlay ---------- */
+.hapsw{position:fixed;left:-200px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+.hap{position:absolute;inset:0;z-index:1;cursor:pointer;-webkit-tap-highlight-color:transparent;background:transparent}
+.pbtn,.carnav,.hand.mine{position:relative}
 /* ---------- in-table status ---------- */
 .pts{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 .pts b{font-family:'Noto Serif JP',serif;font-size:24px;color:var(--gold2);margin-right:3px;vertical-align:-2px}
@@ -399,6 +403,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 </style>
 </head>
 <body>
+<input type="checkbox" switch id="hapsw" class="hapsw" aria-hidden="true" tabindex="-1">
 <div id="viewport"><div id="stage">
   <div class="table">
     <div class="brand">韓麻</div>
@@ -423,7 +428,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
-      <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px">テスト</button><input type="checkbox" id="setHaptic" checked></span></label>
+      <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="gaugeMax">テスト用：ゲージMAX</button>
@@ -1039,7 +1044,8 @@ function render() {
     const fireOn = canSelect();
     const fireLabel = S.phase === 'riichiSelect' ? 'リーチ<br>打牌' : '打牌';
     const o = S.opts || {}, disc = myTurn && S.phase === 'discard', react = S.phase === 'react', rsel = myTurn && S.phase === 'riichiSelect';
-    const B = (act, label, on, cls) => `<button class="pbtn ${cls || ''} ${on ? 'on' : ''}" data-act="${act}" ${on ? '' : 'disabled'}>${label}</button>`;
+    const H = hapOn() ? HAP : '';
+    const B = (act, label, on, cls) => `<button class="pbtn ${cls || ''} ${on ? 'on' : ''}" data-act="${act}" ${on ? '' : 'disabled'}>${label}${on ? H : ''}</button>`;
     const grid =
       B('tsumo', 'ツモ', disc && o.tsumo, 'win') +
       B('ron', 'ロン', react && o.ron, 'win') +
@@ -1065,14 +1071,14 @@ function render() {
       ${choose}
     </div>
     <div class="pbox pmrow"><div class="melds">${meldsHTML('p', true)}</div></div>
-    <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}</div></div>
+    <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}${canSelect() ? H : ''}</div></div>
     <div class="timer"><i id="timerBar"></i></div>
     <div class="pctrl3" id="pctrl">
       <div class="pcol">${B('tsumo', 'ツモ', disc && o.tsumo, 'win')}${B('ron', 'ロン', react && o.ron, 'win')}${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}</div>
-      <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''}">
+      <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''}">${canSelect() ? H : ''}
         <div id="cartrack">${carList().map((t, i) => `<div class="ct" data-ci="${i}" style="left:${i * CAR_PITCH}px">${tileHTML(t)}</div>`).join('')}</div>
-        <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}</button>
-        <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}</button>
+        <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}${H}</button>
+        <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}${H}</button>
         ${extra ? `<div class="carx">${extra}</div>` : ''}
       </div>
       <div class="pcol">${B('pon', 'ポン', react && o.pon)}${B('pkan', 'カン', (disc && !S.riichi.p && (o.kans || []).length > 0) || (react && o.kan))}${B('pskip', (react && o.ron) || (disc && S.riichi.p) ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
@@ -1143,6 +1149,10 @@ const HAPTIC = {
   draw: [30],                      // 流局
 };
 const IS_IOS = HAS_DOM && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+// iOS 26.5 以降はプログラムからの触覚が無効。タップ位置に重ねた透明ラベル（HAP）経由でのみ鳴る
+const IOS_TAP_ONLY = (() => { if (!IS_IOS) return false; const m = navigator.userAgent.match(/OS (\d+)_(\d+)/); if (!m) return true; const a = +m[1], b = +m[2]; return a > 26 || (a === 26 && b >= 5); })();
+const HAP = '<label for="hapsw" class="hap" aria-hidden="true"></label>';
+function hapOn() { return IS_IOS && S.settings.haptic; }
 function iosTap() {
   // iOS 18+ Safari：switch 付きチェックボックスの切替で触覚が出る。毎回作って即削除する
   const lb = document.createElement('label'), cb = document.createElement('input');
@@ -1157,7 +1167,8 @@ function haptic(kind) {
   const pat = HAPTIC[kind] || HAPTIC.tick;
   try {
     if (!IS_IOS && navigator.vibrate) { navigator.vibrate(pat); return; }
-    // iOS：振動パターンの「オン」の数だけ軽いタップを打つ（強弱は出せない）
+    if (IOS_TAP_ONLY) return; // タップ時はHAPラベルが鳴らす
+    // iOS 17.4〜26.4：振動パターンの「オン」の数だけ軽いタップを打つ（強弱は出せない）
     let t = 0;
     pat.forEach((ms, i) => {
       if (i % 2 === 0) { if (t === 0) iosTap(); else setTimeout(() => { try { iosTap(); } catch (e) {} }, t); }
@@ -1461,7 +1472,15 @@ function act(a, ds) {
 }
 if (HAS_DOM) {
   document.addEventListener('click', e => {
-    const a = e.target.closest('[data-act]'); if (a) { if (!a.disabled) act(a.dataset.act, a.dataset); return; }
+    if (e.target.id === 'hapsw' || e.target.classList.contains('hap') && !e.target.closest('[data-act]')) return;
+    const a = e.target.closest('[data-act]');
+    if (a) {
+      if (a.disabled) return;
+      // 透明ラベル経由のタップは、iOSが触覚を鳴らし終えてから処理する（再描画でラベルが消えると鳴らないため）
+      if (e.target.classList.contains('hap')) { const ds = { ...a.dataset }; setTimeout(() => act(ds.act, ds), 0); }
+      else act(a.dataset.act, a.dataset);
+      return;
+    }
     const ch = e.target.closest('[data-choose]'); if (ch) { pickChoose(+ch.dataset.choose); return; }
     const t = e.target.closest('.tile[data-hand="p"]'); if (t) onHandClick(+t.dataset.id);
   });
@@ -1533,8 +1552,8 @@ if (HAS_DOM) {
     if (!drag) return; const d = drag; drag = null;
     if (d.type === 'car') {
       if (!d.moved) {
-        const ct = d.target.closest && d.target.closest('.ct');
-        if (ct) { const i = +ct.dataset.ci; if (i === Math.round(car.pos)) fire(); else carAnimateTo(i); }
+        const ct = (e && document.elementsFromPoint(e.clientX, e.clientY).map(el => el.closest && el.closest('.ct')).find(Boolean)) || (d.target.closest && d.target.closest('.ct'));
+        if (ct) { const i = +ct.dataset.ci; if (i === Math.round(car.pos)) { if (hapOn()) setTimeout(fire, 60); else fire(); } else carAnimateTo(i); }
         return;
       }
       if (d.raf) cancelAnimationFrame(d.raf);
