@@ -288,6 +288,14 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #car{position:relative;overflow:hidden;border-radius:16px;touch-action:none;cursor:grab;
   background:radial-gradient(ellipse at center,rgba(0,0,0,.12),rgba(0,0,0,.38));border:1px solid rgba(216,180,90,.28)}
 #car:not(.on){opacity:.45;cursor:default}
+#car{overflow:visible;clip-path:inset(-900px 0 0 0 round 16px)}
+#cartrack .ct.lift{z-index:5;transition:none}
+#cartrack .ct.back{transition:transform .16s ease-out}
+#cartrack .ct.fly{transition:transform .14s ease-in,opacity .14s ease-in}
+#car.on.armed .ct.cur .tile,#car.on.armed.rsel .ct.cur .tile{outline:5px solid #ff4d4d;box-shadow:0 0 34px 10px rgba(255,70,70,.7)}
+.carup{position:absolute;top:2px;left:50%;transform:translateX(-50%);color:rgba(255,225,77,.45);z-index:2;pointer-events:none;display:none}
+#car.on.swipe .carup{display:block;animation:upbob 1.4s ease-in-out infinite}
+@keyframes upbob{50%{transform:translate(-50%,-4px)}}
 #cartrack{position:absolute;top:50%;left:0;height:0;will-change:transform;backface-visibility:hidden}
 #cartrack .ct{will-change:transform,opacity}
 .portrait .hand.mine{touch-action:none}
@@ -428,6 +436,9 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
+      <label class="set">打牌の操作
+        <select id="setDiscard"><option value="swipe" selected>上スワイプ</option><option value="tap">タップ</option></select></label>
+      <label class="set">手牌の選択中タップで打牌 <input type="checkbox" id="setHandTap"></label>
       <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
@@ -487,7 +498,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true }, log: [], token: 0, ended: true, phase: 'idle',
+  settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, discard: 'swipe', handTap: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -1075,7 +1086,7 @@ function render() {
     <div class="timer"><i id="timerBar"></i></div>
     <div class="pctrl3" id="pctrl">
       <div class="pcol">${B('tsumo', 'ツモ', disc && o.tsumo, 'win')}${B('ron', 'ロン', react && o.ron, 'win')}${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}</div>
-      <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''}">${canSelect() ? H : ''}
+      <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''} ${S.settings.discard === 'swipe' ? 'swipe' : 'tapmode'}">${canSelect() ? H : ''}<div class="carup" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 14 L12 8 L18 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div id="cartrack">${carList().map((t, i) => `<div class="ct" data-ci="${i}" style="left:${i * CAR_PITCH}px">${tileHTML(t)}</div>`).join('')}</div>
         <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}${H}</button>
         <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}${H}</button>
@@ -1178,6 +1189,7 @@ function haptic(kind) {
 }
 /* ---------- 選択カルーセル（スマホ縦） ---------- */
 const CAR_U = 140, CAR_PITCH = 156;
+const LIFT_THRESHOLD = 110; // 上スワイプで打牌になる距離（画面座標）
 const car = { pos: 0, raf: 0, els: null, track: null, W: 0, target: 0, mode: '' };
 const CAR_GAIN = 1.8;      // 指の移動量に対する牌送りの軽さ（大きいほど少ない移動で送れる）
 const CAR_FRICTION = 0.9962; // フリックの減速（1に近いほど長く滑る）
@@ -1358,9 +1370,13 @@ function settingsHTML() {
   return `<h3>持ち時間</h3>
     <div class="opts">${[[0, 'OFF'], [5, '5秒'], [8, '8秒'], [12, '12秒'], [20, '20秒']].map(([v, l]) => `<button class="opt ${T === v ? 'on' : ''}" data-act="time" data-v="${v}">${l}</button>`).join('')}</div>
     <h3>AI補助（おすすめ牌に「勧」を表示）</h3>
-    <div class="opts"><button class="opt ${A ? 'on' : ''}" data-act="assist" data-v="1">ON</button><button class="opt ${!A ? 'on' : ''}" data-act="assist" data-v="0">OFF</button></div>`;
+    <div class="opts"><button class="opt ${A ? 'on' : ''}" data-act="assist" data-v="1">ON</button><button class="opt ${!A ? 'on' : ''}" data-act="assist" data-v="0">OFF</button></div>
+    <h3>打牌の操作（スマホ縦）</h3>
+    <div class="opts"><button class="opt ${S.settings.discard === 'swipe' ? 'on' : ''}" data-act="discardMode" data-v="swipe">大きい牌を上にスワイプ<small>離すと打牌・戻すとキャンセル</small></button><button class="opt ${S.settings.discard === 'tap' ? 'on' : ''}" data-act="discardMode" data-v="tap">大きい牌をタップ</button></div>
+    <h3>手牌で選択中の牌をタップして打牌</h3>
+    <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ time: S.settings.time, assist: S.settings.assist, level: S.settings.level })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ time: S.settings.time, assist: S.settings.assist, level: S.settings.level, discard: S.settings.discard, handTap: S.settings.handTap })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1428,9 +1444,11 @@ function act(a, ds) {
   switch (a) {
     case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
     case 'begin': showPrehand(); break;
-    case 'time': case 'assist': {
+    case 'time': case 'assist': case 'discardMode': case 'handTap': {
       if (a === 'time') { S.settings.time = +ds.v; document.getElementById('setTime').value = ds.v; }
-      else { S.settings.assist = ds.v === '1'; document.getElementById('setAssist').checked = S.settings.assist; }
+      else if (a === 'assist') { S.settings.assist = ds.v === '1'; document.getElementById('setAssist').checked = S.settings.assist; }
+      else if (a === 'discardMode') { S.settings.discard = ds.v; document.getElementById('setDiscard').value = ds.v; }
+      else { S.settings.handTap = ds.v === '1'; document.getElementById('setHandTap').checked = S.settings.handTap; }
       saveSettings();
       if (document.querySelector('#overlay [data-act="begin"]')) showTitle(); else showPrehand();
       break;
@@ -1490,6 +1508,8 @@ if (HAS_DOM) {
   document.getElementById('setLayout').addEventListener('change', e => { S.settings.layout = e.target.value; try { localStorage.setItem('hanma_layout', e.target.value); } catch (er) {} fitStage(); });
   try { const hp = localStorage.getItem('hanma_haptic'); if (hp !== null) { S.settings.haptic = hp === '1'; document.getElementById('setHaptic').checked = S.settings.haptic; } } catch (e) {}
   document.getElementById('setHaptic').addEventListener('change', e => { S.settings.haptic = e.target.checked; try { localStorage.setItem('hanma_haptic', e.target.checked ? '1' : '0'); } catch (er) {} if (e.target.checked) haptic('call'); });
+  document.getElementById('setDiscard').addEventListener('change', e => { S.settings.discard = e.target.value; saveSettings(); render(); });
+  document.getElementById('setHandTap').addEventListener('change', e => { S.settings.handTap = e.target.checked; saveSettings(); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
   document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; saveSettings(); render(); });
   document.addEventListener('keydown', e => {
@@ -1505,6 +1525,8 @@ if (HAS_DOM) {
       if (typeof st.time === 'number') { S.settings.time = st.time; document.getElementById('setTime').value = String(st.time); }
       if (typeof st.assist === 'boolean') { S.settings.assist = st.assist; document.getElementById('setAssist').checked = st.assist; }
       if (st.level) { S.settings.level = st.level; document.getElementById('setLevel').value = st.level; }
+      if (st.discard === 'swipe' || st.discard === 'tap') { S.settings.discard = st.discard; document.getElementById('setDiscard').value = st.discard; }
+      if (typeof st.handTap === 'boolean') { S.settings.handTap = st.handTap; document.getElementById('setHandTap').checked = st.handTap; }
     }
   } catch (e) {}
   try { const bp = JSON.parse(localStorage.getItem('hanma_btnpos6') || 'null'); if (bp && typeof bp.x === 'number') S.btnPos = bp; } catch (e) {}
@@ -1513,12 +1535,15 @@ if (HAS_DOM) {
     if (e.target.closest('#car') && !e.target.closest('[data-act]')) {
       if (!canSelect()) return;
       carStop();
-      drag = { type: 'car', sx: e.clientX, x: e.clientX, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target, raf: 0 };
+      const ct0 = document.elementsFromPoint(e.clientX, e.clientY).map(el => el.closest && el.closest('.ct')).find(Boolean);
+      drag = { type: 'car', sx: e.clientX, x: e.clientX, sy: e.clientY, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target, raf: 0,
+        mode: '', onCenter: !!ct0 && +ct0.dataset.ci === Math.round(car.pos), armed: false };
       e.preventDefault(); return;
     }
     if (S.portrait && e.target.closest('.hand.mine')) {
       if (!canSelect()) return;
-      drag = { type: 'hand' }; handPick(e.clientX); e.preventDefault(); return;
+      const was = S.sel; handPick(e.clientX);
+      drag = { type: 'hand', wasSel: S.sel === was, sx: e.clientX, changed: false }; e.preventDefault(); return;
     }
     if (e.target.closest('#slider')) { drag = { type: 'slider' }; selectByBar(e.clientX); e.preventDefault(); return; }
     if (e.target.closest('#fireBtn')) { drag = { type: 'btn', sx: e.clientX, sy: e.clientY, ox: S.btnPos ? S.btnPos.x : 0, oy: S.btnPos ? S.btnPos.y : 0, moved: false }; e.preventDefault(); }
@@ -1526,6 +1551,19 @@ if (HAS_DOM) {
   document.addEventListener('pointermove', e => {
     if (!drag) return;
     if (drag.type === 'car') {
+      const ddx = e.clientX - drag.sx, ddy = e.clientY - drag.sy;
+      if (!drag.mode && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) {
+        drag.mode = (S.settings.discard === 'swipe' && drag.onCenter && -ddy > Math.abs(ddx)) ? 'v' : 'h';
+        if (drag.mode === 'v') { const el = car.els && car.els[Math.round(car.pos)]; if (el) { el.classList.remove('back'); el.classList.add('lift'); drag.el = el; } }
+      }
+      if (drag.mode === 'v') {
+        drag.moved = true;
+        const lift = Math.min(0, ddy / S.scale);
+        if (drag.el) drag.el.style.transform = `translateY(${lift}px) scale(${1 + Math.min(-lift / 400, 0.15)})`;
+        const armed = -lift > LIFT_THRESHOLD;
+        if (armed !== drag.armed) { drag.armed = armed; document.getElementById('car').classList.toggle('armed', armed); if (armed) haptic('call'); }
+        return;
+      }
       drag.x = e.clientX; if (Math.abs(drag.x - drag.sx) > 6) drag.moved = true;
       const now = performance.now(); drag.hist.push([now, e.clientX]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 70) drag.hist.shift();
       if (!drag.raf) {
@@ -1539,7 +1577,7 @@ if (HAS_DOM) {
       }
       return;
     }
-    if (drag.type === 'hand') { handPick(e.clientX); return; }
+    if (drag.type === 'hand') { const b = S.sel; handPick(e.clientX); if (S.sel !== b) drag.changed = true; return; }
     if (drag.type === 'slider') { selectByBar(e.clientX); return; }
     const dx = (e.clientX - drag.sx) / S.scale, dy = (e.clientY - drag.sy) / S.scale;
     if (Math.abs(dx) + Math.abs(dy) > 10) drag.moved = true;
@@ -1550,10 +1588,23 @@ if (HAS_DOM) {
   });
   const endDrag = e => {
     if (!drag) return; const d = drag; drag = null;
+    if (d.type === 'hand') { if (S.settings.handTap && d.wasSel && !d.changed && canSelect()) { if (hapOn()) setTimeout(fire, 60); else fire(); } return; }
     if (d.type === 'car') {
+      if (d.mode === 'v') {
+        const box = document.getElementById('car'); if (box) box.classList.remove('armed');
+        const el = d.el;
+        if (d.armed && canSelect()) {
+          if (el) { el.classList.remove('lift'); el.classList.add('fly'); el.style.transform = 'translateY(-520px) scale(1.1)'; el.style.opacity = '0'; }
+          setTimeout(fire, 130);
+        } else if (el) {
+          el.classList.remove('lift'); el.classList.add('back'); el.style.transform = 'scale(1)';
+          setTimeout(() => { el.classList.remove('back'); applyCar(); }, 170);
+        }
+        return;
+      }
       if (!d.moved) {
         const ct = (e && document.elementsFromPoint(e.clientX, e.clientY).map(el => el.closest && el.closest('.ct')).find(Boolean)) || (d.target.closest && d.target.closest('.ct'));
-        if (ct) { const i = +ct.dataset.ci; if (i === Math.round(car.pos)) { if (hapOn()) setTimeout(fire, 60); else fire(); } else carAnimateTo(i); }
+        if (ct) { const i = +ct.dataset.ci; if (i === Math.round(car.pos)) { if (S.settings.discard === 'tap') { if (hapOn()) setTimeout(fire, 60); else fire(); } } else carAnimateTo(i); }
         return;
       }
       if (d.raf) cancelAnimationFrame(d.raf);
