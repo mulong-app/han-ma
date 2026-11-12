@@ -181,6 +181,19 @@ table.items td:last-child{text-align:right;font-weight:900}
 .hapsw{position:fixed;left:-200px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
 .hap{position:absolute;inset:0;z-index:1;cursor:pointer;-webkit-tap-highlight-color:transparent;background:transparent}
 .pbtn,.carnav,.hand.mine{position:relative}
+/* ---------- guide ---------- */
+.panel.guide h2{font-size:26px;margin-top:6px}
+.gtop{display:flex;justify-content:space-between;align-items:center}
+.gstep{color:var(--muted);font-weight:900;font-size:13px;letter-spacing:.1em}
+.gbody{min-height:230px;margin-top:6px}
+.gbody p{font-size:15px;color:var(--ink);line-height:1.8}
+.gl{padding-left:20px;margin:8px 0;color:var(--ink);font-size:15px;line-height:1.75}
+.gl li{margin:6px 0}
+.gl b{color:var(--gold2)}
+.gs{color:var(--muted);font-size:13px}
+.gdots{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.gdots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2)}
+.gdots i.on{background:var(--gold2)}
 /* ---------- in-table status ---------- */
 .pts{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 .pts b{font-family:'Noto Serif JP',serif;font-size:24px;color:var(--gold2);margin-right:3px;vertical-align:-2px}
@@ -442,7 +455,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
-        <button class="btn ghost sm" data-act="gaugeMax">テスト用：ゲージMAX</button>
+        <button class="btn ghost sm" data-act="guideMenu">遊び方</button>
         <button class="btn ghost sm" data-act="restart">最初から</button>
       </div>
     </div>
@@ -457,17 +470,11 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
           <li>ドラ表示牌は2枚。カンしても新ドラは増えない</li>
           <li>1人15ツモで流局（精算なし）</li>
           <li>持ち時間切れのたびに1チップ供託。次に和了した人が総取り（流局は持ち越し）</li>
-          <li>点数×ベット倍率のチップが移動。10局またはどちらかが0チップで終了</li>
+          <li>点数×ベット倍率のチップが移動。選んだ局数（1・4・8・∞）を終えるか、どちらかが0チップで終了</li>
         </ul>
       </details>
     </div>
-    <div class="card">
-      <details>
-        <summary>演出イベントログ（画像生成連携用）</summary>
-        <p style="margin:6px 0">各イベントは <code>window</code> に <code>hanma:event</code> として送られます。<br><code>addEventListener('hanma:event', e =&gt; e.detail)</code> で受け取って、画像生成APIに渡す想定です。<code>tenpai</code> は先行生成用の合図です。</p>
-        <ul id="log"></ul>
-      </details>
-    </div>
+
       <div class="row" style="margin-top:4px"><span></span><button class="btn sm" data-act="menuClose">閉じる</button></div>
     </div>
   </div>
@@ -482,7 +489,9 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 const HAS_DOM = typeof document !== 'undefined';
 const HAND_MARGIN = 0.01;  // スマホ縦：手牌の左右の余白（画面幅に対する割合）
 const SLIDER_RATIO = 0.58; // スマホ縦：スライダーの幅（手牌の幅に対する割合）
-const MAX_DRAWS = 15, MAX_HANDS = 10, START_CHIPS = 100, CPU_DELAY = 480;
+const MAX_DRAWS = 15, START_CHIPS = 100, CPU_DELAY = 480;
+const FEATURE_SKILLS = false; // 必殺技・ゲージ（配布版では停止）
+const HANDS_LABEL = n => n ? `${n}` : '∞';
 const KAN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const HONOR = ['東', '南', '西', '北', '白', '發', '中'];
 const KINDS = [0, 8]; for (let i = 9; i < 34; i++) KINDS.push(i);
@@ -498,7 +507,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, discard: 'swipe', handTap: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, discard: 'swipe', handTap: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -886,7 +895,7 @@ function ryukyoku() {
   cutin('流局', 'n', null, 'ryukyoku');
   later(() => showResult({ kind: 'draw', g: 3 }), 950, true);
 }
-function isOver() { return S.chips.p <= 0 || S.chips.c <= 0 || S.handNo >= MAX_HANDS; }
+function isOver() { return S.chips.p <= 0 || S.chips.c <= 0 || (S.maxHands > 0 && S.handNo >= S.maxHands); }
 
 /* ---------- timer ---------- */
 let timerId = null, timerEnd = 0, timerLen = 0, timerCb = null;
@@ -1042,7 +1051,7 @@ function render() {
           <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
           <div class="dorashow"><span class="lbl">今回のドラ</span><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div><span class="lbl" style="color:#ff8a8a">＋全ての5</span></div></div>
         <div class="info">
-          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${MAX_HANDS}</small></b>
+          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>ベット</span><b>×${S.bet}${S.skill ? ` · <span style="color:#c9a0ff">${SKILLS[S.skill].name}</span>` : ''}</b>
           <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
         </div>`;
@@ -1115,7 +1124,7 @@ function render() {
           <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
           <div class="dorashow"><span class="lbl">今回のドラ</span><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div><span class="lbl" style="color:#ff8a8a">＋全ての5</span></div></div>
         <div class="info">
-          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${MAX_HANDS}</small></b>
+          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>ベット</span><b>×${S.bet}${S.skill ? ` · <span style="color:#c9a0ff">${SKILLS[S.skill].name}</span>` : ''}</b>
           <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
         </div>
@@ -1340,6 +1349,7 @@ function fitStage() {
   if (changed) render(); else updateSel();
 }
 function gaugeHTML() {
+  if (!FEATURE_SKILLS) return '';
   const g = S.gauge, lv = g >= 100 ? 3 : g >= 60 ? 2 : g >= 30 ? 1 : 0;
   return `<div class="tg ${g >= 100 ? 'full' : ''}"><div class="bar"><i style="width:${g}%"></i><em style="left:30%"></em><em style="left:60%"></em></div>ゲージ <b>${g}</b>${lv ? `<span class="lv">Lv${lv}使用可</span>` : ''}</div>`;
 }
@@ -1358,7 +1368,7 @@ function cutin(text, who, tier, key) {
   else if (k === 'ryukyoku') haptic('draw');
   const el = document.getElementById('cutin');
   el.className = (who === 'p' ? 'pl' : who === 'c' ? 'cp' : 'nt') + (tier ? ' t-' + tier : '');
-  el.innerHTML = `<div class="slot"><span>IMAGE SLOT</span><b>${key || ''}</b></div><div class="txt">${text}</div>`;
+  el.innerHTML = `<div class="txt">${text}</div>`;
   void el.offsetWidth; el.classList.add('show');
 }
 
@@ -1376,17 +1386,71 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ time: S.settings.time, assist: S.settings.assist, level: S.settings.level, discard: S.settings.discard, handTap: S.settings.handTap })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, discard: S.settings.discard, handTap: S.settings.handTap })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
-    <p>パラダイスシティの韓国式麻雀「韓麻」をもとにした、2人打ち・対CPUのスピード麻雀です。役はなく、ドラ・ロン・ツモ・リーチの点を足すだけ。フリテンもありません。</p>
-    <p>和了などでゲージがたまり、局の開始前に<b style="color:var(--gold2)">必殺技</b>を使えます。</p>
+    <p>パラダイスシティの韓国式麻雀「韓麻」をもとにした、CPUと1対1のスピード麻雀です。役はなく、ドラ・ロン・ツモ・リーチの点を足すだけ。</p>
+    <div class="row" style="margin-top:8px;justify-content:flex-start">${btn('guide', '遊び方・ルール', 'ghost sm')}</div>
+    <h3>局数</h3>
+    <div class="opts">${[[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞（どちらかが飛ぶまで）']].map(([v, l]) => `<button class="opt ${S.maxHands === v ? 'on' : ''}" data-act="hands" data-v="${v}">${l}</button>`).join('')}</div>
     <h3>CPUの強さ</h3>
     <div class="opts">${['weak', 'mid', 'strong'].map(l => `<button class="opt ${S.settings.level === l ? 'on' : ''}" data-act="level" data-v="${l}">${{ weak: '弱', mid: '中', strong: '強' }[l]}<small>${{ weak: 'ときどき悪手', mid: '効率重視', strong: 'リーチに少し守る' }[l]}</small></button>`).join('')}</div>
     ${settingsHTML()}
-    <div class="row"><span style="color:var(--muted);font-size:13px">持ちチップ ${START_CHIPS} · 全${MAX_HANDS}局</span>${btn('begin', 'ゲーム開始 ▶')}</div>
+    <div class="row"><span style="color:var(--muted);font-size:13px">持ちチップ ${START_CHIPS} · ${S.maxHands ? `全${S.maxHands}局` : 'どちらかが飛ぶまで'}</span>${btn('begin', 'ゲーム開始 ▶')}</div>
   </div>`);
+}
+/* ---------- 遊び方ガイド ---------- */
+function guidePages() {
+  const por = S.portrait;
+  return [
+    { t: '韓麻 HEADS-UP へようこそ', b: `
+      <p>韓国・パラダイスシティのカジノで遊ばれている韓国式麻雀「韓麻（ハンマ）」がベースです。</p>
+      <p>CPUと1対1で、<b>1局ごとにチップを奪い合う</b>スピード麻雀。普通の麻雀を知っていれば、次のページの「違い」だけ覚えればすぐ遊べます。</p>` },
+    { t: '普通の麻雀との違い', b: `<ul class="gl">
+      <li><b>役は不要</b>：4面子1雀頭・七対子・国士無双の形になれば、いつでも和了れます</li>
+      <li><b>フリテンなし</b>：自分が捨てた牌でもロンでき、見逃しも自由</li>
+      <li><b>チーはなし</b>（ポン・カンはあり）</li>
+      <li><b>萬子は一萬と九萬だけ</b>（全108枚）</li>
+      <li><b>すべての5（筒子・索子）がドラ</b>。ドラ表示牌は2枚で、カンしても増えません</li>
+      <li><b>親・場風・自風はなし</b>。1人15ツモで流局（流局は精算なし）</li></ul>` },
+    { t: '点数とチップ', b: `<ul class="gl">
+      <li>点数は足し算だけ：<b>ロン6／ツモ4／リーチ2／ドラ・5ドラ・裏ドラ 各1</b></li>
+      <li>国士無双は20点。1回の和了は<b>最大20点</b></li>
+      <li>局の前に選んだ<b>ベット倍率（×1・×2・×5）</b>をかけたチップが相手から移動</li>
+      <li>持ち時間を過ぎるたびに<b>1チップを供託</b>。次に和了した人が総取り</li></ul>` },
+    { t: '操作', b: por ? `<ul class="gl">
+      <li><b>牌を選ぶ</b>：手牌を指でなぞる・タップ、または下の大きな牌を左右にスワイプ（フリックで素早く移動）</li>
+      <li><b>牌を切る</b>：大きな牌を<b>真上にスワイプして離す</b>。途中で戻せばキャンセル<br><span class="gs">（メニューで「タップで打牌」「手牌の選択中タップで打牌」にも変更可）</span></li>
+      <li><b>ツモ・ロン・リーチ・ポン・カン</b>：大きな牌の左右のボタン。押せるときだけ光ります</li>
+      <li><b>スキップ</b>：ポンやロンができるときに、何もせずに進める（ロンできるときは「見逃し」）</li>
+      <li><b>リーチ</b>：押してから、テンパイを保てる牌を選んで切ります</li></ul>` : `<ul class="gl">
+      <li><b>牌を切る</b>：手牌の牌をクリック</li>
+      <li><b>ツモ・ロン・リーチ・ポン・カン</b>：手牌の下のボタン。押せるときだけ出ます</li>
+      <li><b>スキップ</b>：ポンやロンができるときに、何もせずに進める（ロンできるときは「見逃し」）</li>
+      <li><b>リーチ</b>：押してから、光っている牌（テンパイを保てる牌）を切ります</li>
+      <li><b>一時停止</b>：P / Esc キー</li></ul>` },
+    { t: '勝敗と画面の見方', b: `<ul class="gl">
+      <li>画面上部のバーは<b>チップの割合</b>：<span style="color:#7fb6f5">青＝あなた</span>／<span style="color:#b9bdc1">灰＝供託</span>／<span style="color:#f08a92">赤＝CPU</span></li>
+      <li>決めた局数を終えるか、<b>どちらかのチップが0</b>になったら終了。チップの多い方の勝ち</li>
+      <li>手牌の上の「勧」はAIのおすすめ（開始前の設定でOFFにできます）</li>
+      <li>遊び方はいつでも<b>メニュー →「遊び方」</b>で見直せます</li></ul>` },
+  ];
+}
+function showGuide(i, ret) {
+  const pages = guidePages(); i = Math.max(0, Math.min(pages.length - 1, i | 0)); S.guideRet = ret || S.guideRet || 'title';
+  const last = i === pages.length - 1, pg = pages[i];
+  showOverlay(`<div class="panel guide">
+    <div class="gtop"><span class="gstep">${i + 1} / ${pages.length}</span>${btn('guideEnd', 'スキップ', 'ghost sm')}</div>
+    <h2>${pg.t}</h2>
+    <div class="gbody">${pg.b}</div>
+    <div class="gdots">${pages.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="row">${i > 0 ? btn('guideGo', '◀ 戻る', 'ghost', `data-v="${i - 1}"`) : '<span></span>'}${last ? btn('guideEnd', 'はじめる ▶') : btn('guideGo', '次へ ▶', '', `data-v="${i + 1}"`)}</div>
+  </div>`);
+}
+function endGuide() {
+  try { localStorage.setItem('hanma_guide_seen', '1'); } catch (e) {}
+  if (S.guideRet === 'close') { const pv = S.guidePrev; S.guideRet = null; S.guidePrev = null; if (pv && pv.shown) showOverlay(pv.html); else hideOverlay(); } else showTitle();
 }
 function showPrehand() {
   const n = S.handNo + 1;
@@ -1396,14 +1460,14 @@ function showPrehand() {
   const maxBet = Math.min(S.chips.p, S.chips.c);
   showOverlay(`<div class="panel">
     <h2>第${n}局</h2>
-    <p>あなた <b style="color:var(--gold2)">${S.chips.p}</b> 対 CPU <b style="color:#ffb0b0">${S.chips.c}</b> チップ · ${n % 2 === 1 ? 'あなたが先手' : 'CPUが先手'} · ゲージ ${S.gauge}${S.pot ? ` · <span class="pot">供託 ${S.pot}</span>` : ''}</p>
+    <p>あなた <b style="color:var(--gold2)">${S.chips.p}</b> 対 CPU <b style="color:#ffb0b0">${S.chips.c}</b> チップ · ${n % 2 === 1 ? 'あなたが先手' : 'CPUが先手'} ${FEATURE_SKILLS ? ` · ゲージ ${S.gauge}` : ''}${S.pot ? ` · <span class="pot">供託 ${S.pot}</span>` : ''}</p>
     <h3>ベット倍率</h3>
     <div class="opts">${[1, 2, 5].map(v => `<button class="opt ${S.bet === v ? 'on' : ''}" data-act="bet" data-v="${v}" ${fix && v !== 1 ? 'disabled' : ''}>×${v}<small>最大${20 * v}チップ</small></button>`).join('')}</div>
-    <h3>必殺技（ゲージ ${S.gauge}）</h3>
+    ${FEATURE_SKILLS ? `<h3>必殺技（ゲージ ${S.gauge}）</h3>
     <div class="opts">
       <button class="opt ${!S.pendingSkill ? 'on' : ''}" data-act="skill" data-v="">使わない</button>
       ${Object.entries(SKILLS).map(([id, s]) => `<button class="opt ${S.pendingSkill === id ? 'on' : ''}" data-act="skill" data-v="${id}" ${s.cost > S.gauge ? 'disabled' : ''}><span class="lv">Lv${s.lv}</span>${s.name} <span style="color:var(--muted);font-weight:500">-${s.cost}</span><small>${s.desc}</small></button>`).join('')}
-    </div>
+    </div>` : ''}
     ${settingsHTML()}
     <div class="row"><span style="color:var(--muted);font-size:12px">${maxBet < 20 * S.bet ? '※相手の残りチップ以上は移動しません' : ''}</span>${btn('start', '配牌 ▶')}</div>
   </div>`);
@@ -1421,7 +1485,7 @@ function showResult(r) {
     html = `<h2>流局</h2><p>精算なし${S.pot ? `（供託 ${S.pot} は次の局へ持ち越し）` : ''}</p><h3>CPUの手牌</h3><div class="rhand">${S.hands.c.slice().sort((a, b) => a.k - b.k).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   }
   if (S.riichi.p || S.riichi.c) html += `<h3>裏ドラ表示</h3><div class="rhand">${S.uraInd.map(t => tileHTML(t, { sm: true })).join('')}</div>`;
-  html += `<div class="row"><span style="color:#c9a0ff;font-weight:900">ゲージ +${r.g} → ${S.gauge}</span>${btn('next', isOver() ? '結果へ ▶' : '次の局へ ▶')}</div>`;
+  html += `<div class="row">${FEATURE_SKILLS ? `<span style="color:#c9a0ff;font-weight:900">ゲージ +${r.g} → ${S.gauge}</span>` : '<span></span>'}${btn('next', isOver() ? '結果へ ▶' : '次の局へ ▶')}</div>`;
   showOverlay(`<div class="panel">${html}</div>`);
 }
 function showFinal() {
@@ -1444,6 +1508,15 @@ function act(a, ds) {
   switch (a) {
     case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
     case 'begin': showPrehand(); break;
+    case 'hands': S.maxHands = +ds.v; saveSettings(); showTitle(); break;
+    case 'guide': showGuide(0, 'title'); break;
+    case 'guideMenu': {
+      const ov = document.getElementById('overlay');
+      S.guidePrev = { html: ov.innerHTML, shown: ov.classList.contains('show') };
+      toggleMenu(false); setPause(true); showGuide(0, 'close'); break;
+    }
+    case 'guideGo': showGuide(+ds.v); break;
+    case 'guideEnd': endGuide(); break;
     case 'time': case 'assist': case 'discardMode': case 'handTap': {
       if (a === 'time') { S.settings.time = +ds.v; document.getElementById('setTime').value = ds.v; }
       else if (a === 'assist') { S.settings.assist = ds.v === '1'; document.getElementById('setAssist').checked = S.settings.assist; }
@@ -1522,6 +1595,7 @@ if (HAS_DOM) {
   try {
     const st = JSON.parse(localStorage.getItem('hanma_settings') || 'null');
     if (st) {
+      if (typeof st.hands === 'number' && [0, 1, 4, 8].includes(st.hands)) S.maxHands = st.hands;
       if (typeof st.time === 'number') { S.settings.time = st.time; document.getElementById('setTime').value = String(st.time); }
       if (typeof st.assist === 'boolean') { S.settings.assist = st.assist; document.getElementById('setAssist').checked = st.assist; }
       if (st.level) { S.settings.level = st.level; document.getElementById('setLevel').value = st.level; }
@@ -1618,7 +1692,9 @@ if (HAS_DOM) {
   };
   document.addEventListener('pointerup', endDrag); document.addEventListener('pointercancel', endDrag);
   window.addEventListener('resize', fitStage); fitStage();
-  renderSide(); showTitle();
+  renderSide();
+  let seen = false; try { seen = localStorage.getItem('hanma_guide_seen') === '1'; } catch (e) {}
+  if (seen) showTitle(); else showGuide(0, 'title');
 }
 </script>
 <script>
