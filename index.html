@@ -234,7 +234,7 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .portrait .passist span{color:var(--muted);font-weight:500}
 .portrait .hand.mine{flex-wrap:nowrap;gap:2px}
 .portrait .hand.mine .tile.click:hover{transform:none}
-.portrait .hand.mine .tile.sel{transform:translateY(-10px);outline:3px solid #ffe14d;outline-offset:1px}
+.portrait .hand.mine .tile.sel{transform:translateY(-10px);outline:3px solid #5cd6ff;outline-offset:1px;box-shadow:0 0 12px 2px rgba(92,214,255,.55),0 2px 0 #b9a16b,0 4px 0 #2d6a4d,0 6px 9px rgba(0,0,0,.45)}
 .portrait .mrow{padding:14px 0 0;justify-content:center}
 .portrait .pspace{flex:1}
 .portrait .river{--rw:44px;min-height:calc(44px*1.36*2 + 3px);justify-content:center}
@@ -325,7 +325,7 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #cartrack .ct.back{transition:transform .16s ease-out}
 #cartrack .ct.fly{transition:transform .14s ease-in,opacity .14s ease-in}
 #car.on.armed .ct.cur .tile,#car.on.armed.rsel .ct.cur .tile{outline:5px solid #ff4d4d;box-shadow:0 0 34px 10px rgba(255,70,70,.7)}
-.carup{position:absolute;top:2px;left:50%;transform:translateX(-50%);color:rgba(255,225,77,.45);z-index:2;pointer-events:none;display:none}
+.carup{position:absolute;top:2px;left:50%;transform:translateX(-50%);color:rgba(92,214,255,.55);z-index:2;pointer-events:none;display:none}
 #car.on.swipe .carup{display:block;animation:upbob 1.4s ease-in-out infinite}
 @keyframes upbob{50%{transform:translate(-50%,-4px)}}
 #cartrack{position:absolute;top:50%;left:0;height:0;will-change:transform;backface-visibility:hidden}
@@ -335,9 +335,9 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #cartrack .ct .tile{--u:140px;position:absolute;top:0;transform:translateY(-50%);transition:top .12s ease-out}
 #cartrack .ct.raised .tile{top:-26px}
 #car.on .ct.cur.raised .tile{outline-color:#ff9a3d;box-shadow:0 0 26px 6px rgba(255,150,60,.55),0 2px 0 #b9a16b,0 4px 0 #2d6a4d,0 10px 14px rgba(0,0,0,.5)}
-#car.on .ct.cur .tile{outline:4px solid #ffe14d;outline-offset:2px;box-shadow:0 0 22px 4px rgba(255,225,77,.45),0 2px 0 #b9a16b,0 4px 0 #2d6a4d,0 6px 9px rgba(0,0,0,.45)}
+#car.on .ct.cur .tile{outline:4px solid #5cd6ff;outline-offset:2px;box-shadow:0 0 22px 4px rgba(92,214,255,.5),0 2px 0 #b9a16b,0 4px 0 #2d6a4d,0 6px 9px rgba(0,0,0,.45)}
 #car.on.rsel .ct.cur .tile{outline-color:#ff6b6b;box-shadow:0 0 22px 4px rgba(255,90,90,.5)}
-.carnav{position:absolute;top:0;bottom:0;width:44px;border:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#ffe14d;cursor:pointer;
+.carnav{position:absolute;top:0;bottom:0;width:44px;border:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#5cd6ff;cursor:pointer;
   background:linear-gradient(90deg,rgba(4,17,12,.85),rgba(4,17,12,0))}
 .carnav.l{left:0}
 .carnav.r{right:0;background:linear-gradient(270deg,rgba(4,17,12,.85),rgba(4,17,12,0))}
