@@ -3,14 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>韓麻 HEADS-UP</title>
-<meta name="theme-color" content="#072a1e">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<title>韓麻 HEADS-UP プロトタイプ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -194,6 +187,14 @@ table.items td:last-child{text-align:right;font-weight:900}
 .gdots{display:flex;gap:8px;justify-content:center;margin-top:10px}
 .gdots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2)}
 .gdots i.on{background:var(--gold2)}
+/* ---------- waits ---------- */
+.wslot{display:contents}
+.waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
+.waits .wk{display:inline-flex;align-items:flex-end;gap:2px}
+.waits .wk .tile{--u:24px;box-shadow:0 1px 0 #b9a16b,0 2px 0 #2d6a4d}
+.waits .wk i{font-style:normal;font-size:13px;color:var(--gold2)}
+.waits .wp{margin-left:6px;color:var(--muted);font-size:14px}
+.who .waits{margin-left:12px;margin-right:0;font-size:13px}
 /* ---------- in-table status ---------- */
 .pts{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
 .pts b{font-family:'Noto Serif JP',serif;font-size:24px;color:var(--gold2);margin-right:3px;vertical-align:-2px}
@@ -298,9 +299,9 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .pctrl3{display:grid;grid-template-columns:116px 1fr 116px;gap:10px;margin-top:14px;height:262px}
 .pcol{display:flex;flex-direction:column;gap:8px}
 .pcol .pbtn{flex:1;height:auto;font-size:24px;letter-spacing:0;white-space:nowrap;padding:0}
-.winpop{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9;display:flex;align-items:center;gap:18px;
+.winpop{position:absolute;left:50%;top:auto;bottom:6px;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:18px;
   background:rgba(20,4,6,.92);border:2px solid #ff8a8a;border-radius:20px;padding:16px 22px;box-shadow:0 0 40px rgba(255,60,60,.45),0 20px 50px rgba(0,0,0,.6);animation:popin .22s ease-out}
-@keyframes popin{from{transform:translate(-50%,-50%) scale(.7);opacity:0}}
+@keyframes popin{from{transform:translateX(-50%) translateY(30px) scale(.8);opacity:0}}
 .winpop .wt .tile{--u:74px}
 .winpop.call{background:rgba(4,17,12,.94);border-color:var(--gold);box-shadow:0 0 34px rgba(216,180,90,.4),0 20px 50px rgba(0,0,0,.6)}
 .winpop .wbtns{display:flex;gap:12px}
@@ -1091,7 +1092,7 @@ function render() {
   const centerHTML = `
         <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}
           <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
-          <div class="dorashow"><span class="lbl">今回のドラ</span><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div><span class="lbl" style="color:#ff8a8a">＋全ての5</span></div></div>
+          <div class="dorashow"><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div></div></div>
         <div class="info">
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
@@ -1144,18 +1145,18 @@ function render() {
       ${choose}
       ${winpop}
     </div>
-    <div class="pbox pmrow"><div class="melds">${meldsHTML('p', true)}</div></div>
+    <div class="pbox pmrow"><span class="wslot">${waitHTML()}</span><div class="melds">${meldsHTML('p', true)}</div></div>
     <div class="handrow mrow" style="--tw:${u}px"><div class="hand mine">${myTiles}${canSelect() ? H : ''}</div></div>
     <div class="timer"><i id="timerBar"></i></div>
     <div class="pctrl3" id="pctrl">
-      <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${T('autoCall', '自動鳴き', S.settings.autoCall)}</div>
+      <div class="pcol">${T('autoWin', '自動和了', S.settings.autoWin)}${T('autoCall', '自動鳴き', S.settings.autoCall)}</div>
       <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''} ${S.settings.swipe ? 'swipe' : ''}">${canSelect() ? H : ''}<div class="carup" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 14 L12 8 L18 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div id="cartrack">${carList().map((t, i) => `<div class="ct" data-ci="${i}" style="left:0">${tileHTML(t)}</div>`).join('')}</div>
         <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}${H}</button>
         <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}${H}</button>
         ${extra ? `<div class="carx">${extra}</div>` : ''}
       </div>
-      <div class="pcol">${T('autoWin', '自動和了', S.settings.autoWin)}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
+      <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
     </div>
     <div class="pbar">
       <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
@@ -1176,7 +1177,7 @@ function render() {
       <div class="center">
         <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}
           <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
-          <div class="dorashow"><span class="lbl">今回のドラ</span><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div><span class="lbl" style="color:#ff8a8a">＋全ての5</span></div></div>
+          <div class="dorashow"><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div></div></div>
         <div class="info">
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
@@ -1186,7 +1187,7 @@ function render() {
       <div class="rivers"><div class="river">${riverHTML('p')}</div></div>
     </div>
     <div class="zone">
-      <div class="who"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}</div>
+      <div class="who"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
       <div class="handrow"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div class="actions"><span class="msg">${msg}</span>${acts}</div>
@@ -1194,6 +1195,30 @@ function render() {
   if (timerId) tick();
 }
 function renderSide() {}
+/* ---------- 聴牌時の待ち表示（AI補助） ---------- */
+function waitInfo() {
+  if (!S.settings.assist || S.ended || !S.hands.p.length) return null;
+  const h = S.hands.p, open = S.melds.p.length, c = counts(h);
+  if (h.length % 3 === 2) {               // 打牌前：選択中の牌を切った場合の待ち
+    if (!canSelect() && !(S.phase === 'discard' && S.turn === 'p')) return null;
+    const t = h.find(x => x.id === S.sel) || h.find(x => x.id === S.drawn.p); if (!t) return null;
+    c[t.k]--;
+  }
+  if (shAll(c, open) !== 0) return null;
+  const seen = seenCounts('p'), waits = [];
+  for (const k of KINDS) { c[k]++; if (shAll(c, open) === -1) waits.push({ k, left: Math.max(0, 4 - seen[k]) }); c[k]--; }
+  if (!waits.length) return null;
+  const W = waits.reduce((a, w) => a + w.left, 0);
+  const U = Math.max(1, KINDS.length * 4 - seen.reduce((a, b) => a + b, 0));
+  // 目安：残りの自分のツモ＋相手の打牌（半分だけ数える）で、待ち牌が1枚でも出る確率（相手の和了などは考慮しない）
+  const n = Math.round(Math.max(0, MAX_DRAWS - S.draws.p) + 0.5 * Math.max(0, MAX_DRAWS - S.draws.c));
+  let miss = 1; for (let i = 0; i < n && i < U; i++) miss *= Math.max(0, 1 - W / (U - i));
+  return { waits, W, pct: Math.round((1 - miss) * 100) };
+}
+function waitHTML() {
+  const w = waitInfo(); if (!w) return '';
+  return `<div class="waits" aria-label="待ち">待ち ${w.waits.map(x => `<span class="wk">${tileHTML({ k: x.k, id: 0 }, { cls: 'nolabel' })}<i>×${x.left}</i></span>`).join('')}<span class="wp">残り${w.W}枚 · 和了率 約${w.pct}%</span></div>`;
+}
 function renderPts() {
   const bar = document.getElementById('ptsbar'); if (!bar) return;
   bar.classList.toggle('show', S.handNo > 0);
@@ -1302,6 +1327,11 @@ function handPick(x) {
 function highlightHand() {
   const on = canSelect();
   document.querySelectorAll('.hand.mine .tile[data-id]').forEach(el => el.classList.toggle('sel', on && +el.dataset.id === S.sel));
+  refreshWaits();
+}
+function refreshWaits() {
+  const html = waitHTML();
+  document.querySelectorAll('.wslot').forEach(el => { if (el.innerHTML !== html) el.innerHTML = html; });
 }
 function carSync() {
   if (!canSelect()) return;
@@ -1794,13 +1824,6 @@ if (HAS_DOM) {
   renderSide();
   let seen = false; try { seen = localStorage.getItem('hanma_guide_seen') === '1'; } catch (e) {}
   if (seen) showTitle(); else showGuide(0, 'title');
-}
-</script>
-<script>
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {}));
-  const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
 }
 </script>
 </body>
