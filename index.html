@@ -223,7 +223,12 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 #stage.portrait{width:720px;height:1400px}
 .portrait .table{border-width:0;border-radius:0;box-shadow:inset 0 0 80px rgba(0,0,0,.55)}
 .portrait .table{padding:14px 14px 16px;--rw:40px}
-.portrait .brand{font-size:90px}
+.brand{display:none}
+[data-wm]{position:relative}
+[data-wm]::before{content:attr(data-wm);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Noto Serif JP',serif;font-weight:900;
+  font-size:40px;letter-spacing:.3em;color:rgba(216,180,90,.10);pointer-events:none;white-space:nowrap;z-index:0}
+.priver[data-wm]::before{font-size:76px}
+[data-wm] .tile{z-index:1}
 .portrait #board{gap:6px}
 .portrait .handrow{flex-wrap:nowrap;gap:8px;min-height:0}
 .portrait .river{max-width:none;width:100%}
@@ -1010,6 +1015,7 @@ function meldsHTML(who, sm) {
   return S.melds[who].map(m => `<div class="meld">${m.tiles.map((t, i) =>
     m.type === 'ankan' && (i === 0 || i === 3) ? tileHTML(t, { back: true, sm }) : tileHTML(t, { sm })).join('')}</div>`).join('');
 }
+const wmOf = who => (S.handNo % 2 === 1 ? 'p' : 'c') === who ? '先攻' : '後攻';
 function riverHTML(who) {
   return S.river[who].map(t => {
     let cls = t.side ? 'side' : '';
@@ -1090,9 +1096,7 @@ function render() {
 
   const left = w => MAX_DRAWS - S.draws[w];
   const centerHTML = `
-        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}
-          <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
-          <div class="dorashow"><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div></div></div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
         <div class="info">
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
@@ -1139,9 +1143,9 @@ function render() {
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
     <div class="pspace"></div>
     <div class="pub">
-      <div class="pbox priver"><div class="river opp">${riverHTML('c')}</div></div>
+      <div class="pbox priver" data-wm="${wmOf('c')}"><div class="river opp">${riverHTML('c')}</div></div>
       <div class="pbox pstat"><div class="center">${centerHTML}</div></div>
-      <div class="pbox priver"><div class="river">${riverHTML('p')}</div></div>
+      <div class="pbox priver" data-wm="${wmOf('p')}"><div class="river">${riverHTML('p')}</div></div>
       ${choose}
       ${winpop}
     </div>
@@ -1173,18 +1177,16 @@ function render() {
       <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
     <div class="mid">
-      <div class="rivers"><div class="river opp">${riverHTML('c')}</div></div>
+      <div class="rivers"><div class="river opp" data-wm="${wmOf('c')}">${riverHTML('c')}</div></div>
       <div class="center">
-        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}
-          <span class="cap" style="margin-left:6px">裏ドラ</span>${S.ended && (S.riichi.p || S.riichi.c) ? S.uraInd.map(t => tileHTML(t, { sm: true })).join('') : tileHTML(null, { back: true, sm: true }) + tileHTML(null, { back: true, sm: true })}
-          <div class="dorashow"><div class="ts">${S.doraKinds.map(k => tileHTML({ k, id: 0 }, { cls: 'nolabel' })).join('')}</div></div></div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
         <div class="info">
           <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
           <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
           <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
         </div>
       </div>
-      <div class="rivers"><div class="river">${riverHTML('p')}</div></div>
+      <div class="rivers"><div class="river" data-wm="${wmOf('p')}">${riverHTML('p')}</div></div>
     </div>
     <div class="zone">
       <div class="who"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
