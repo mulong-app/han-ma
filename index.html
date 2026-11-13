@@ -187,6 +187,8 @@ table.items td:last-child{text-align:right;font-weight:900}
 .gdots{display:flex;gap:8px;justify-content:center;margin-top:10px}
 .gdots i{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2)}
 .gdots i.on{background:var(--gold2)}
+#tilewarm{position:absolute;left:2px;bottom:2px;display:flex;flex-wrap:nowrap;gap:0;opacity:.011;pointer-events:none;z-index:1}
+#tilewarm .tile{--u:6px;box-shadow:none}
 /* ---------- waits ---------- */
 .wslot{display:contents}
 .waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
@@ -1830,7 +1832,33 @@ if (HAS_DOM) {
   window.addEventListener('resize', fitStage); fitStage();
   renderSide();
   let seen = false; try { seen = localStorage.getItem('hanma_guide_seen') === '1'; } catch (e) {}
-  if (seen) showTitle(); else showGuide(0, 'title');
+  const go = () => { if (seen) showTitle(); else showGuide(0, 'title'); };
+  showLoading();
+  preloadTiles().then(go, go);
+}
+/* ---------- 牌画像の事前読み込み：図柄をデコードしてから画面を出す（白い牌が一瞬見えるのを防ぐ） ---------- */
+function tileArtURLs() {
+  const urls = new Set(), st = document.getElementById('tileart');
+  try { for (const r of st.sheet.cssRules) { const m = /url\(["']?([^"')]+)["']?\)/.exec(r.cssText || ''); if (m) urls.add(m[1]); } } catch (e) {}
+  if (!urls.size) for (const m of st.textContent.matchAll(/url\(["']?([^"')]+)["']?\)/g)) urls.add(m[1]);
+  return [...urls];
+}
+function preloadTiles() {
+  const jobs = tileArtURLs().map(u => new Promise(res => {
+    const im = new Image(); (window.TILE_IMGS = window.TILE_IMGS || []).push(im);
+    im.onload = () => (im.decode ? im.decode().catch(() => {}) : Promise.resolve()).then(res);
+    im.onerror = res; im.src = u;
+  }));
+  // 全種類の牌を画面外で常に描画しておき、ブラウザに図柄をデコード済みのまま保持させる
+  const warm = document.createElement('div');
+  warm.id = 'tilewarm'; warm.setAttribute('aria-hidden', 'true');
+  warm.innerHTML = KINDS.map(k => tileHTML({ k, id: -1 }, { cls: 'nolabel' })).join('');
+  document.getElementById('stage').appendChild(warm);
+  const all = Promise.all(jobs).then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  return Promise.race([all, new Promise(r => setTimeout(r, 6000))]);
+}
+function showLoading() {
+  showOverlay('<div class="panel" style="text-align:center"><h2 style="margin:0">牌を読み込み中…</h2></div>');
 }
 </script>
 </body>
