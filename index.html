@@ -499,7 +499,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
           <li>役なし。4面子1雀頭／七対子／国士無双なら和了</li>
           <li>フリテンなし。現物でもロンでき、見逃しもOK</li>
           <li>点数：ロン／ツモ（6/4・7/4・8/4・6/2から選択）＋リーチ2／ドラ・5ドラ・裏ドラ各1。国士は20。上限20点</li>
-          <li>持ち点：ロン6/ツモ4は21点、7/4は23点、8/4は24点、6/2は20点。0点以下で飛び（8局でおよそ半分の確率で決着する設定）</li>
+          <li>持ち点：35点。0点以下で飛び</li>
           <li>ドラ表示牌は2枚。カンしても新ドラは増えない</li>
           <li>1人18ツモで流局（精算なし）</li>
           <li>持ち時間切れのたびに1チップ供託。次に和了した人が総取り（流局は持ち越し）</li>
@@ -524,9 +524,9 @@ const HAND_MARGIN = 0.01;  // スマホ縦：手牌の左右の余白（画面�
 const SLIDER_RATIO = 0.58; // スマホ縦：スライダーの幅（手牌の幅に対する割合）
 const TILES_136 = true;   // true：全136枚（萬子1〜9）／false：108枚（萬子は1・9のみ）
 const MAX_DRAWS = 18, CPU_DELAY = 480;
-// 初期点：CPU同士1200局のシミュレーションから、8局以内にどちらかが飛ぶ確率がおよそ50%になる値
-const START_BY_SCORING = { '6/4': 21, '7/4': 23, '8/4': 24, '6/2': 20 };
-const startChips = () => START_BY_SCORING[S.settings.scoring] || 21;
+// 初期点35：CPU同士のシミュレーションで、8局以内に飛ぶ確率はおよそ12〜23%（点数設定による）
+const START_CHIPS = 35;
+const startChips = () => START_CHIPS;
 const FEATURE_SKILLS = false; // 必殺技・ゲージ（配布版では停止）
 const HANDS_LABEL = n => n ? `${n}` : '∞';
 const SCORINGS = ['6/4', '7/4', '8/4', '6/2']; // ロン点／ツモ点
@@ -546,7 +546,7 @@ const SKILLS = {
 };
 let uid = 0;
 const S = {
-  chips: { p: 21, c: 21 }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
+  chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
   maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
@@ -1520,7 +1520,7 @@ function guidePages() {
       <li><b>親・場風・自風はなし</b>。1人18ツモで流局（流局は精算なし）</li></ul>` },
     { t: '点数とチップ', b: `<ul class="gl">
       <li>点数は足し算だけ：<b>ロン${winPts(false)}／ツモ${winPts(true)}／リーチ2／ドラ・5ドラ・裏ドラ 各1</b><br><span class="gs">（ロンとツモの点数は開始画面・メニューで変更できます）</span></li>
-      <li>持ち点は <b>${startChips()}点</b>（点数設定で変わります）。0点以下になったら飛びで終了です</li>
+      <li>持ち点は <b>${startChips()}点</b>。0点以下になったら飛びで終了です</li>
       <li>国士無双は20点。1回の和了は<b>最大20点</b></li>
       <li>和了した点数と<b>同じ枚数のチップ</b>が相手から移動</li>
       <li>持ち時間を過ぎるたびに<b>1チップを供託</b>。次に和了した人が総取り</li></ul>` },
