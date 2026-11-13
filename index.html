@@ -487,6 +487,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">自動和了（ツモ・ロン） <input type="checkbox" id="setAutoWin"></label>
       <label class="set">手牌の選択中タップで打牌 <input type="checkbox" id="setHandTap" checked></label>
       <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
+      <label class="set">効果音 <span><button class="btn ghost sm" data-act="seTest" style="margin-right:8px">テスト</button><input type="range" id="setSe" min="0" max="1" step="0.1" value="0.7"></span></label>
+      <label class="set">BGM <span><input type="range" id="setBgm" min="0" max="1" step="0.1" value="0.5"></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="guideMenu">遊び方</button>
@@ -549,7 +551,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -640,11 +642,92 @@ function waitsOf(who) {
   return out;
 }
 
+/* ---------- 効果音（Web Audioで合成。音声ファイル不要） ---------- */
+let AC = null, SE_BUS = null, BGM_BUS = null, NOISE = null;
+function audioUnlock() {
+  if (!HAS_DOM) return;
+  try {
+    if (!AC) {
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+      AC = new C(); SE_BUS = AC.createGain(); SE_BUS.connect(AC.destination); BGM_BUS = AC.createGain(); BGM_BUS.connect(AC.destination);
+      const n = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate), d = n.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; NOISE = n;
+      bgmVolume(); bgmLoadAll();
+    }
+    if (AC.state !== 'running') AC.resume();
+    // iOS：無音を1回鳴らして出力を有効化
+    const b = AC.createBufferSource(); b.buffer = AC.createBuffer(1, 1, 22050); b.connect(AC.destination); b.start(0);
+    bgmUpdate();
+  } catch (e) {}
+}
+function tone(t, f, dur, { type = 'sine', vol = 0.3, f2 = null, att = 0.004 } = {}) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g); g.connect(SE_BUS); o.start(t); o.stop(t + dur + 0.02);
+}
+function clack(t, { vol = 0.5, freq = 2600, q = 1.2, dur = 0.05, body = 170 } = {}) {   // 牌を卓に置く音
+  const src = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = NOISE; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(SE_BUS); src.start(t, Math.random() * 0.3); src.stop(t + dur + 0.01);
+  if (body) tone(t, body, 0.06, { type: 'triangle', vol: vol * 0.5, f2: body * 0.7, att: 0.002 });
+}
+const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
+function sfx(kind) {
+  if (!HAS_DOM || !AC || AC.state !== 'running' || !(S.settings.se > 0)) return;
+  SE_BUS.gain.value = S.settings.se;
+  const t = AC.currentTime + 0.005;
+  switch (kind) {
+    case 'tick': clack(t, { vol: 0.12, freq: 3800, dur: 0.018, body: 0 }); break;
+    case 'tsumo': clack(t, { vol: 0.22, freq: 2200, dur: 0.035, body: 0 }); break;
+    case 'discard': clack(t, { vol: 0.6 }); break;
+    case 'oppDiscard': clack(t, { vol: 0.38, freq: 2100, body: 140 }); break;
+    case 'call': clack(t, { vol: 0.55 }); clack(t + 0.09, { vol: 0.55 }); tone(t + 0.1, NOTE(76), 0.18, { type: 'square', vol: 0.08 }); break;
+    case 'riichi': [72, 79, 84].forEach((n, i) => tone(t + i * 0.07, NOTE(n), 0.35, { type: 'triangle', vol: 0.22 })); tone(t + 0.21, NOTE(96), 0.5, { vol: 0.08 }); break;
+    case 'win': [72, 76, 79, 84].forEach((n, i) => tone(t + i * 0.09, NOTE(n), 0.25, { type: 'square', vol: 0.1 }));
+      [72, 76, 79, 84].forEach(n => tone(t + 0.4, NOTE(n), 0.9, { type: 'triangle', vol: 0.14 })); break;
+    case 'lose': [67, 63, 60].forEach((n, i) => tone(t + i * 0.16, NOTE(n), 0.4, { type: 'triangle', vol: 0.2 })); break;
+    case 'draw': tone(t, NOTE(60), 0.35, { type: 'triangle', vol: 0.2 }); tone(t + 0.25, NOTE(55), 0.6, { type: 'triangle', vol: 0.2 }); break;
+    case 'warn': tone(t, NOTE(88), 0.07, { type: 'square', vol: 0.06 }); break;
+    case 'chip': tone(t, NOTE(91), 0.08, { vol: 0.2 }); tone(t + 0.06, NOTE(96), 0.15, { vol: 0.16 }); break;
+    case 'skill': [60, 64, 67, 72, 76].forEach((n, i) => tone(t + i * 0.05, NOTE(n), 0.3, { type: 'sawtooth', vol: 0.06 })); break;
+  }
+}
+/* ---------- BGM：bgm/ に置いた曲を場面ごとにループ再生（ファイルが無ければ無音） ---------- */
+const BGM_TRACKS = { title: 'bgm/title.m4a', game: 'bgm/game.m4a', tense: 'bgm/tense.m4a' };
+const BGM_BUF = {}; let bgmNow = null, bgmSrc = null, bgmGain = null;
+function bgmVolume() { if (BGM_BUS) BGM_BUS.gain.value = (S.settings.bgm || 0) * 0.6; }
+function bgmLoadAll() {
+  if (location.protocol === 'file:') return;
+  for (const [k, url] of Object.entries(BGM_TRACKS)) {
+    fetch(url).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng)))
+      .then(buf => { BGM_BUF[k] = buf; bgmUpdate(); }).catch(() => {});
+  }
+}
+function bgmScene() {
+  if (S.ended) return 'title';
+  if (S.riichi.p || S.riichi.c || (MAX_DRAWS - S.draws.p <= 5)) return BGM_BUF.tense ? 'tense' : 'game';
+  return 'game';
+}
+function bgmUpdate() {
+  if (!AC || AC.state !== 'running') return;
+  const want = bgmScene(), key = BGM_BUF[want] ? want : (BGM_BUF.game ? 'game' : null);
+  if (key === bgmNow) return;
+  const t = AC.currentTime;
+  if (bgmSrc) { const s0 = bgmSrc, g0 = bgmGain; g0.gain.setValueAtTime(g0.gain.value, t); g0.gain.linearRampToValueAtTime(0, t + 0.8); s0.stop(t + 0.85); }
+  bgmNow = key; bgmSrc = null;
+  if (!key) return;
+  const src = AC.createBufferSource(), g = AC.createGain();
+  src.buffer = BGM_BUF[key]; src.loop = true; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.8);
+  src.connect(g); g.connect(BGM_BUS); src.start(t); bgmSrc = src; bgmGain = g;
+}
+
 /* ---------- events (image-gen hook) ---------- */
 function emit(type, data) {
   const ev = Object.assign({ type, hand: S.handNo, t: Date.now() }, data || {});
   S.log.unshift(ev); if (S.log.length > 80) S.log.pop();
-  if (HAS_DOM) { try { window.dispatchEvent(new CustomEvent('hanma:event', { detail: ev })); } catch (e) {} renderLog(); }
+  if (HAS_DOM) { try { window.dispatchEvent(new CustomEvent('hanma:event', { detail: ev })); } catch (e) {} renderLog(); try { bgmUpdate(); } catch (e) {} }
 }
 
 /* ---------- hand setup ---------- */
@@ -754,6 +837,7 @@ function drawOpts(who) {
   return o;
 }
 function playerOnDraw() {
+  sfx('tsumo');
   S.phase = 'discard'; S.opts = drawOpts('p'); S.winDismissed = false; S.callDismissed = false; S.raised = null; render();
   if (S.opts.tsumo && S.settings.autoWin) return autoDo(() => S.phase === 'discard' && S.turn === 'p' && S.opts.tsumo, () => win('p', 'tsumo'));
   if (!S.riichi.p && (S.opts.kans || []).length && S.settings.autoCall && !S.opts.tsumo) {
@@ -962,10 +1046,11 @@ function startTimer(cb) {
 function tick() {
   const left = timerEnd - Date.now();
   if (HAS_DOM) { const el = document.getElementById('timerBar'); if (el) { el.style.width = Math.max(0, left / timerLen * 100) + '%'; el.classList.toggle('low', left < 2500); } }
+  const sec = Math.ceil(left / 1000); if (left > 0 && sec <= 3 && sec !== tick.warned) { tick.warned = sec; sfx('warn'); } if (sec > 3) tick.warned = 0;
   if (left <= 0) {
     if (S.settings.timeout === 'pot' && S.chips.p > 0 && !S.ended) {
       S.chips.p--; S.pot++;
-      emit('deposit', { who: 'p', pot: S.pot });
+      emit('deposit', { who: 'p', pot: S.pot }); sfx('chip');
       timerEnd = Date.now() + timerLen;
       toast(`時間切れ：1チップ供託（供託 ${S.pot}）`);
       render(); return;
@@ -1270,6 +1355,7 @@ function iosTap() {
   document.head.removeChild(lb);
 }
 function haptic(kind) {
+  sfx(kind);
   if (!HAS_DOM || !S.settings.haptic) return;
   const pat = HAPTIC[kind] || HAPTIC.tick;
   try {
@@ -1477,7 +1563,7 @@ function cutin(text, who, tier, key) {
 }
 
 /* ---------- overlays ---------- */
-function showOverlay(html) { if (!HAS_DOM) return; const o = document.getElementById('overlay'); o.innerHTML = html; o.classList.add('show'); }
+function showOverlay(html) { if (!HAS_DOM) return; const o = document.getElementById('overlay'); o.innerHTML = html; o.classList.add('show'); try { bgmUpdate(); } catch (e) {} }
 function hideOverlay() { if (!HAS_DOM) return; document.getElementById('overlay').classList.remove('show'); }
 function settingsHTML() {
   const T = S.settings.time, A = S.settings.assist;
@@ -1493,7 +1579,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1654,7 +1740,8 @@ function act(a, ds) {
     case 'skip': reactSkip(); break;
     case 'pause': setPause(true); break;
     case 'menu': toggleMenu(); break;
-    case 'hapticTest': { const on = S.settings.haptic; S.settings.haptic = true; haptic('win'); S.settings.haptic = on; } break;
+    case 'seTest': sfx('win'); break;
+    case 'hapticTest': { const on = S.settings.haptic, se = S.settings.se; S.settings.haptic = true; S.settings.se = 0; haptic('win'); S.settings.haptic = on; S.settings.se = se; } break;
     case 'selL': moveSel(-1); break;
     case 'pkan':
       if (S.phase === 'react' && S.opts.kan) claim('p', S.reactTile, 'minkan');
@@ -1702,6 +1789,14 @@ if (HAS_DOM) {
   document.getElementById('setHandTap').addEventListener('change', e => { S.settings.handTap = e.target.checked; saveSettings(); });
   document.getElementById('setScoring').addEventListener('change', e => { S.settings.scoring = e.target.value; saveSettings(); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
+  const seEl = document.getElementById('setSe'), bgEl = document.getElementById('setBgm');
+  seEl.value = S.settings.se; bgEl.value = S.settings.bgm;
+  seEl.addEventListener('input', e => { S.settings.se = +e.target.value; });
+  seEl.addEventListener('change', e => { S.settings.se = +e.target.value; saveSettings(); sfx('discard'); });
+  bgEl.addEventListener('input', e => { S.settings.bgm = +e.target.value; bgmVolume(); });
+  bgEl.addEventListener('change', e => { S.settings.bgm = +e.target.value; saveSettings(); bgmVolume(); });
+  ['pointerdown', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, audioUnlock, { capture: true, passive: true }));
+  document.addEventListener('visibilitychange', () => { if (!AC) return; if (document.hidden) AC.suspend(); else AC.resume(); });
   document.getElementById('setAssist').addEventListener('change', e => { S.settings.assist = e.target.checked; saveSettings(); render(); });
   document.addEventListener('keydown', e => {
     if (S.portrait && e.key === 'ArrowLeft') { moveSel(-1); return; }
@@ -1723,6 +1818,8 @@ if (HAS_DOM) {
       else if (st.discard === 'tap') { S.settings.swipe = false; S.settings.tap = 'single'; } // 旧設定からの移行
       if (typeof st.autoCall === 'boolean') S.settings.autoCall = st.autoCall;
       if (typeof st.autoWin === 'boolean') S.settings.autoWin = st.autoWin;
+      if (typeof st.se === 'number') S.settings.se = st.se;
+      if (typeof st.bgm === 'number') S.settings.bgm = st.bgm;
       document.getElementById('setSwipe').checked = S.settings.swipe; document.getElementById('setTap').value = S.settings.tap;
       document.getElementById('setAutoCall').checked = S.settings.autoCall; document.getElementById('setAutoWin').checked = S.settings.autoWin;
       if (typeof st.handTap === 'boolean') { S.settings.handTap = st.handTap; document.getElementById('setHandTap').checked = st.handTap; }
