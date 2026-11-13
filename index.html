@@ -1320,14 +1320,15 @@ function carAnimateTo(target) {
   };
   car.raf = requestAnimationFrame(step);
 }
-function carFling(v) { // v: 牌/ms
+function carFling(v, lo = -Infinity, hi = Infinity) { // v: 牌/ms。lo〜hi の範囲（端）で止まる
   carStop(); car.mode = 'fling';
   let last = performance.now();
   const step = now => {
     const dt = Math.min(32, now - last); last = now;
     car.pos += v * dt; v *= Math.pow(CAR_FRICTION, dt);
+    if (car.pos <= lo) { car.pos = lo; v = 0; } else if (car.pos >= hi) { car.pos = hi; v = 0; }
     applyCar(); carSync();
-    if (Math.abs(v) < 0.0016) { car.raf = 0; car.mode = ''; carAnimateTo(Math.round(car.pos)); return; }
+    if (Math.abs(v) < 0.0016) { car.raf = 0; car.mode = ''; carAnimateTo(Math.max(lo, Math.min(hi, Math.round(car.pos)))); return; }
     car.raf = requestAnimationFrame(step);
   };
   car.raf = requestAnimationFrame(step);
@@ -1687,8 +1688,12 @@ if (HAS_DOM) {
       if (!canSelect()) return;
       carStop();
       const ct0 = document.elementsFromPoint(e.clientX, e.clientY).map(el => el.closest && el.closest('.ct')).find(Boolean);
+      // 1回のスライド（＋慣性）では端で止める。端に止まっている状態から、さらに外へスライドしたときだけループを許可
+      const n0 = carList().length, r0 = Math.round(car.pos), s0 = wrapI(r0, n0);
+      car.pos = s0 + (car.pos - r0);
+      const lo = n0 > 1 && s0 === 0 ? -n0 : 0, hi = n0 > 1 && s0 === n0 - 1 ? 2 * n0 - 1 : Math.max(0, n0 - 1);
       drag = { type: 'car', sx: e.clientX, x: e.clientX, sy: e.clientY, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target, raf: 0,
-        mode: '', onCenter: !!ct0 && +ct0.dataset.ci === wrapI(Math.round(car.pos), carList().length), armed: false };
+        mode: '', onCenter: !!ct0 && +ct0.dataset.ci === s0, armed: false, lo, hi };
       e.preventDefault(); return;
     }
     if (S.portrait && e.target.closest('.hand.mine')) {
@@ -1721,7 +1726,9 @@ if (HAS_DOM) {
         const d0 = drag;
         d0.raf = requestAnimationFrame(() => {
           d0.raf = 0; if (drag !== d0) return;
-          car.pos = d0.sp - (d0.x - d0.sx) * CAR_GAIN / (CAR_PITCH * S.scale); applyCar(); carSync();
+          let p = d0.sp - (d0.x - d0.sx) * CAR_GAIN / (CAR_PITCH * S.scale);
+          if (p < d0.lo) p = d0.lo - (d0.lo - p) * 0.25; else if (p > d0.hi) p = d0.hi + (p - d0.hi) * 0.25;
+          car.pos = p; applyCar(); carSync();
         });
       }
       return;
@@ -1768,7 +1775,7 @@ if (HAS_DOM) {
       if (d.raf) cancelAnimationFrame(d.raf);
       const h = d.hist, a = h[0], b = h[h.length - 1], dt = b[0] - a[0];
       const v = dt > 0 && performance.now() - b[0] < 80 ? -(b[1] - a[1]) * CAR_GAIN / dt / (CAR_PITCH * S.scale) : 0;
-      if (Math.abs(v) > 0.002) carFling(v); else carAnimateTo(Math.round(car.pos));
+      if (Math.abs(v) > 0.002) carFling(v, d.lo, d.hi); else carAnimateTo(Math.max(d.lo, Math.min(d.hi, Math.round(car.pos))));
       return;
     }
     if (d.type === 'slider' && IS_IOS) haptic('tick');
