@@ -459,7 +459,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
       <label class="set">打牌の操作
         <select id="setDiscard"><option value="swipe" selected>上スワイプ</option><option value="tap">タップ</option></select></label>
-      <label class="set">手牌の選択中タップで打牌 <input type="checkbox" id="setHandTap" checked></label>
+      <label class="set">手牌ダブルタップで打牌 <input type="checkbox" id="setHandTap" checked></label>
       <label class="set">触覚フィードバック <span><button class="btn ghost sm" data-act="hapticTest" style="margin-right:8px;position:relative">テスト<label for="hapsw" class="hap" aria-hidden="true"></label></button><input type="checkbox" id="setHaptic" checked></span></label>
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
@@ -1398,7 +1398,7 @@ function settingsHTML() {
     <div class="opts"><button class="opt ${A ? 'on' : ''}" data-act="assist" data-v="1">ON</button><button class="opt ${!A ? 'on' : ''}" data-act="assist" data-v="0">OFF</button></div>
     <h3>打牌の操作（スマホ縦）</h3>
     <div class="opts"><button class="opt ${S.settings.discard === 'swipe' ? 'on' : ''}" data-act="discardMode" data-v="swipe">大きい牌を上にスワイプ<small>離すと打牌・戻すとキャンセル</small></button><button class="opt ${S.settings.discard === 'tap' ? 'on' : ''}" data-act="discardMode" data-v="tap">大きい牌をタップ</button></div>
-    <h3>手牌で選択中の牌をタップして打牌</h3>
+    <h3>手牌ダブルタップで打牌（選択中の牌をもう一度タップ）</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
 function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, discard: S.settings.discard, handTap: S.settings.handTap })); } catch (e) {} }
@@ -1436,7 +1436,7 @@ function guidePages() {
       <li>持ち時間を過ぎるたびに<b>1チップを供託</b>。次に和了した人が総取り</li></ul>` },
     { t: '操作', b: por ? `<ul class="gl">
       <li><b>牌を選ぶ</b>：手牌を指でなぞる・タップ、または下の大きな牌を左右にスワイプ（フリックで素早く移動）</li>
-      <li><b>牌を切る</b>：大きな牌を<b>真上にスワイプして離す</b>。途中で戻せばキャンセル<br><span class="gs">（メニューで「タップで打牌」「手牌の選択中タップで打牌」にも変更可）</span></li>
+      <li><b>牌を切る</b>：大きな牌を<b>真上にスワイプして離す</b>。途中で戻せばキャンセル<br><span class="gs">（手牌の牌をダブルタップしても打牌できます。設定で変更可）</span></li>
       <li><b>ツモ・ロン・リーチ・ポン・カン</b>：大きな牌の左右のボタン。押せるときだけ光ります</li>
       <li><b>スキップ</b>：ポンやロンができるときに、何もせずに進める（ロンできるときは「見逃し」）</li>
       <li><b>リーチ</b>：押してから、テンパイを保てる牌を選んで切ります</li></ul>` : `<ul class="gl">
