@@ -412,7 +412,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 .tile.k1 .f{background-image:url(tiles/m2.png)}
 .tile.k2 .f{background-image:url(tiles/m3.png)}
 .tile.k3 .f{background-image:url(tiles/m4.png)}
-.tile.k4 .f{background-image:url(tiles/m5.png)}
+.tile.k4 .f{background-image:url(tiles/m5r.png)}
 .tile.k5 .f{background-image:url(tiles/m6.png)}
 .tile.k6 .f{background-image:url(tiles/m7.png)}
 .tile.k7 .f{background-image:url(tiles/m8.png)}
@@ -487,12 +487,12 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <details>
         <summary>ルール（韓麻ベース・2人打ち）</summary>
         <ul>
-          <li>108枚（萬子は1・9のみ）。チーなし、ポン・カンあり</li>
+          <li>136枚（萬子・筒子・索子 1〜9と字牌）。チーなし、ポン・カンあり</li>
           <li>役なし。4面子1雀頭／七対子／国士無双なら和了</li>
           <li>フリテンなし。現物でもロンでき、見逃しもOK</li>
           <li>点数：ロン6／ツモ4／リーチ2／ドラ・5ドラ・裏ドラ各1。国士は20。上限20点</li>
           <li>ドラ表示牌は2枚。カンしても新ドラは増えない</li>
-          <li>1人15ツモで流局（精算なし）</li>
+          <li>1人18ツモで流局（精算なし）</li>
           <li>持ち時間切れのたびに1チップ供託。次に和了した人が総取り（流局は持ち越し）</li>
           <li>点数×ベット倍率のチップが移動。選んだ局数（1・4・8・∞）を終えるか、どちらかが0チップで終了</li>
         </ul>
@@ -513,12 +513,14 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 const HAS_DOM = typeof document !== 'undefined';
 const HAND_MARGIN = 0.01;  // スマホ縦：手牌の左右の余白（画面幅に対する割合）
 const SLIDER_RATIO = 0.58; // スマホ縦：スライダーの幅（手牌の幅に対する割合）
-const MAX_DRAWS = 15, START_CHIPS = 100, CPU_DELAY = 480;
+const TILES_136 = true;   // true：全136枚（萬子1〜9）／false：108枚（萬子は1・9のみ）
+const MAX_DRAWS = 18, START_CHIPS = 100, CPU_DELAY = 480;
 const FEATURE_SKILLS = false; // 必殺技・ゲージ（配布版では停止）
 const HANDS_LABEL = n => n ? `${n}` : '∞';
 const KAN = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
 const HONOR = ['東', '南', '西', '北', '白', '發', '中'];
-const KINDS = [0, 8]; for (let i = 9; i < 34; i++) KINDS.push(i);
+const KINDS = []; for (let i = 0; i < 34; i++) if (TILES_136 || i === 0 || i >= 8) KINDS.push(i);
+const FIVES = TILES_136 ? [4, 13, 22] : [13, 22];
 const YAOCHU = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
 const SKILLS = {
   tooshi:  { name: '透視',         cost: 30,  lv: 1, desc: 'その局はCPUの手牌3枚が見える' },
@@ -545,12 +547,12 @@ function takeKind(arr, k) { const i = arr.findIndex(t => t.k === k); return i < 
 function counts(tiles) { const c = new Array(34).fill(0); for (const t of tiles) c[t.k]++; return c; }
 function tileName(k) { if (k < 27) { const s = (k / 9) | 0, n = (k % 9) + 1; return n + '萬筒索'[s]; } return HONOR[k - 27]; }
 function doraOf(k) {
-  if (k === 0) return 8; if (k === 8) return 0;
+  if (!TILES_136) { if (k === 0) return 8; if (k === 8) return 0; }
   if (k < 27) return k % 9 === 8 ? k - 8 : k + 1;
   if (k <= 30) return k === 30 ? 27 : k + 1;
   return k === 33 ? 31 : k + 1;
 }
-function doraPts(k) { let n = 0; for (const d of S.doraKinds) if (d === k) n++; if (k === 13 || k === 22) n++; return n; }
+function doraPts(k) { let n = 0; for (const d of S.doraKinds) if (d === k) n++; if (FIVES.includes(k)) n++; return n; }
 function later(fn, ms, allowEnded) { const tok = S.token; const run = () => { if (tok !== S.token) return; if (S.paused) return setTimeout(run, 150); if (S.ended && !allowEnded) return; fn(); }; setTimeout(run, ms); }
 function isClosed(who) { return S.melds[who].every(m => m.type === 'ankan'); }
 
@@ -896,7 +898,7 @@ function scoreWin(who, tsumo) {
   const items = [[tsumo ? 'ツモ' : 'ロン', tsumo ? 4 : 6]];
   if (S.riichi[who]) items.push(['リーチ', 2]);
   const dora = all.reduce((a, t) => a + S.doraKinds.filter(d => d === t.k).length, 0);
-  const five = all.filter(t => t.k === 13 || t.k === 22).length;
+  const five = all.filter(t => FIVES.includes(t.k)).length;
   if (dora) items.push(['ドラ', dora]);
   if (five) items.push(['5ドラ', five]);
   let ura = 0;
@@ -987,7 +989,7 @@ function tileHTML(t, o) {
   if (o.back) return `<div class="tile back${sm}"></div>`;
   const k = t.k, cls = ['tile', 'k' + k];
   if (k < 27) cls.push(['man', 'pin', 'sou'][(k / 9) | 0]);
-  if (k === 13 || k === 22) cls.push('five');
+  if (FIVES.includes(k)) cls.push('five');
   if (S.doraKinds.includes(k)) cls.push('dora');
   if (o.sm) cls.push('sm');
   if (o.cls) cls.push(o.cls);
@@ -1472,9 +1474,8 @@ function guidePages() {
       <li><b>役は不要</b>：4面子1雀頭・七対子・国士無双の形になれば、いつでも和了れます</li>
       <li><b>フリテンなし</b>：自分が捨てた牌でもロンでき、見逃しも自由</li>
       <li><b>チーはなし</b>（ポン・カンはあり）</li>
-      <li><b>萬子は一萬と九萬だけ</b>（全108枚）</li>
-      <li><b>すべての5（筒子・索子）がドラ</b>。ドラ表示牌は2枚で、カンしても増えません</li>
-      <li><b>親・場風・自風はなし</b>。1人15ツモで流局（流局は精算なし）</li></ul>` },
+      <li><b>すべての5（萬子・筒子・索子）がドラ</b>。ドラ表示牌は2枚で、カンしても増えません</li>
+      <li><b>親・場風・自風はなし</b>。1人18ツモで流局（流局は精算なし）</li></ul>` },
     { t: '点数とチップ', b: `<ul class="gl">
       <li>点数は足し算だけ：<b>ロン6／ツモ4／リーチ2／ドラ・5ドラ・裏ドラ 各1</b></li>
       <li>国士無双は20点。1回の和了は<b>最大20点</b></li>
