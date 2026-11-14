@@ -46,3 +46,6 @@ sw.js                  オフライン用キャッシュ
 - BGM・ジングルは `bgm/` にあります（title / game / start / victory / defeat、AAC 128kbps、-16 LUFS）。
   - title・game はイントロを1回流したあと、曲中のループ区間を繰り返します（区間は index.html の `BGM_TRACKS`）。
   - 音量は効果音より控えめになるよう `BGM_LEVEL` / `JINGLE_LEVEL` で調整しています。
+
+## キャラクター（追加予定）
+対局開始の対戦カットインは `index.html` の `CHARACTERS` を参照します。`img` に画像のパス（例: `chars/player.png`）を入れると、シルエットの代わりに表示されます。

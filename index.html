@@ -200,9 +200,37 @@ table.items td:last-child{text-align:right;font-weight:900}
 .gdots i.on{background:var(--gold2)}
 #tilewarm{position:absolute;left:2px;bottom:2px;display:flex;flex-wrap:nowrap;gap:0;opacity:.011;pointer-events:none;z-index:1}
 #tilewarm .tile{--u:6px;box-shadow:none}
+/* ---------- 対局開始の対戦カットイン ---------- */
+#vs{position:absolute;inset:0;z-index:60;display:none;align-items:center;justify-content:center;overflow:hidden;border-radius:14px;
+  background:radial-gradient(ellipse at center,#14281e,#020805)}
+#vs.show{display:flex;animation:vsFade .25s ease-out}
+#vs.out{animation:vsOut .35s ease-in forwards}
+#vs .band{position:absolute;left:-10%;right:-10%;height:46%;transform:skewY(-8deg)}
+#vs .band.p{bottom:2%;background:linear-gradient(90deg,rgba(36,103,196,.85),rgba(36,103,196,.15));animation:vsInL .45s cubic-bezier(.2,.9,.2,1) both}
+#vs .band.c{top:2%;background:linear-gradient(270deg,rgba(226,67,76,.85),rgba(226,67,76,.15));animation:vsInR .45s .12s cubic-bezier(.2,.9,.2,1) both}
+#vs .side{position:absolute;display:flex;align-items:center;gap:22px}
+#vs .side.p{bottom:12%;left:7%;animation:vsInL .5s .1s cubic-bezier(.2,.9,.2,1) both}
+#vs .side.c{top:12%;right:7%;flex-direction:row-reverse;animation:vsInR .5s .22s cubic-bezier(.2,.9,.2,1) both}
+#vs .por{width:180px;height:180px;border-radius:50%;overflow:hidden;border:4px solid #f6e2a0;background:rgba(0,0,0,.35);box-shadow:0 8px 30px rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+#vs .por img{width:100%;height:100%;object-fit:cover}
+#vs .por svg{width:86%;height:86%}
+#vs .nm{font:900 46px/1.1 'Zen Kaku Gothic New',sans-serif;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.7)}
+#vs .nm small{display:block;font-size:20px;color:var(--gold2);letter-spacing:.1em}
+#vs .side.c .nm{text-align:right}
+#vs .mark{position:relative;font:900 120px/1 'Noto Serif JP',serif;color:#ffe14d;letter-spacing:-.04em;text-shadow:0 0 30px rgba(255,200,60,.8),0 6px 0 #7a5a16;animation:vsMark .5s .45s cubic-bezier(.2,1.6,.4,1) both}
+#vs .sub{position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
+#stage:not(.portrait) #vs .side.p{bottom:16%;left:10%}#stage:not(.portrait) #vs .side.c{top:16%;right:10%}
+@keyframes vsFade{from{opacity:0}to{opacity:1}}
+@keyframes vsOut{to{opacity:0;transform:scale(1.04)}}
+@keyframes vsInL{from{transform:translateX(-120%) skewY(-8deg);opacity:0}}
+@keyframes vsInR{from{transform:translateX(120%) skewY(-8deg);opacity:0}}
+@keyframes vsMark{from{transform:scale(3);opacity:0}}
 /* ---------- main menu ---------- */
 .menuBtns{display:flex;flex-direction:column;gap:12px;margin:18px 0 8px}
 .menuBtns .btn{width:100%;font-size:22px;padding:14px 18px}
+.handPick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px}
+.handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
+.handPick .btn small{display:block;font-size:10px;font-weight:700;opacity:.8;margin-top:3px;white-space:nowrap}
 /* ---------- waits ---------- */
 .wslot{display:contents}
 .waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
@@ -476,6 +504,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
     <div id="ptsbar" aria-label="チップの配分"><i class="sp"><b></b></i><i class="sk"><b></b></i><i class="sc"><b></b></i></div>
     <div id="board"></div>
     <div id="cutin"></div>
+    <div id="vs" aria-live="polite"></div>
     <div id="overlay"></div>
     <div id="pause"></div>
     <div id="toast"></div>
@@ -729,10 +758,22 @@ function bgmPrefetch() {   // ページ表示時にダウンロードだけ始�
   const all = [['title', BGM_TRACKS.title.url], ['start', JINGLES.start], ['game', BGM_TRACKS.game.url], ['victory', JINGLES.victory], ['defeat', JINGLES.defeat]];
   all.forEach(([k, url]) => { BGM_RAW[k] = fetch(url).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).catch(() => null); });
 }
+const BGM_DEC = {};
 function bgmLoadAll() {
   for (const k of Object.keys(BGM_RAW)) {
-    BGM_RAW[k].then(a => a && new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng))).then(buf => { if (buf) { BGM_BUF[k] = buf; bgmUpdate(); } }).catch(() => {});
+    BGM_DEC[k] = BGM_RAW[k].then(a => a && new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng))).then(buf => { if (buf) { BGM_BUF[k] = buf; bgmUpdate(); } }).catch(() => {});
   }
+}
+// 指定した曲のデコード完了を待つ（音が出せない環境や読み込み失敗時は待たない）
+function bgmReady(keys, limit = 8000) {
+  if (!AC || !Object.keys(BGM_RAW).length) return Promise.resolve();
+  const all = Promise.all(keys.map(k => BGM_DEC[k] || Promise.resolve()));
+  return Promise.race([all, new Promise(r => setTimeout(r, limit))]);
+}
+// 起動時：BGMのダウンロード完了を待つ
+function bgmDownloaded(limit = 15000) {
+  const all = Promise.all(Object.values(BGM_RAW));
+  return Promise.race([all, new Promise(r => setTimeout(r, limit))]);
 }
 function bgmScene() { return S.inGame ? 'game' : 'title'; }
 function bgmStop(fade = 0.8) {
@@ -762,8 +803,7 @@ function playJingle(name) {
   clearTimeout(bgmHoldTimer); bgmHoldTimer = setTimeout(bgmUpdate, (bgmHoldUntil - AC.currentTime) * 1000 + 30);
 }
 function bgmOnEvent(ev) {
-  if (ev.type === 'hand_start' && S.handNo === 1) playJingle('start');
-  else if (ev.type === 'game_end') { if (ev.result === 'win') playJingle('victory'); else if (ev.result === 'lose') playJingle('defeat'); else bgmUpdate(); }
+  if (ev.type === 'game_end') { if (ev.result === 'win') playJingle('victory'); else if (ev.result === 'lose') playJingle('defeat'); else bgmUpdate(); }
   else bgmUpdate();
 }
 
@@ -1612,6 +1652,31 @@ function cutin(text, who, tier, key) {
   void el.offsetWidth; el.classList.add('show');
 }
 
+/* ---------- キャラクター（後で画像を追加できるようにしておく） ----------
+   img に画像のパスを入れると対戦カットインの丸枠に表示される（例: 'chars/player.png'） */
+const CHARACTERS = {
+  p: { name: 'あなた', title: 'PLAYER', img: '' },
+  c: { name: 'CPU', title: () => 'CPU ' + { weak: '弱', mid: '中', strong: '強' }[S.settings.level], img: '' },
+};
+const SILHOUETTE = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="38" r="20" fill="rgba(246,226,160,.55)"/><path d="M12 100c2-24 18-36 38-36s36 12 38 36z" fill="rgba(246,226,160,.55)"/></svg>`;
+function charPortrait(who) { const c = CHARACTERS[who]; return c.img ? `<img src="${c.img}" alt="${c.name}">` : SILHOUETTE; }
+function showVS(ms) {
+  return new Promise(done => {
+    const el = document.getElementById('vs'); if (!el) return done();
+    const ttl = w => { const t = CHARACTERS[w].title; return typeof t === 'function' ? t() : t; };
+    el.innerHTML = `<div class="band p"></div><div class="band c"></div>
+      <div class="side p"><div class="por">${charPortrait('p')}</div><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
+      <div class="mark">VS</div>
+      <div class="side c"><div class="por">${charPortrait('c')}</div><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
+      <div class="sub">${S.maxHands ? S.maxHands + '局戦' : '∞（飛ぶまで）'} ・ 持ち点 ${startChips()}</div>`;
+    el.className = 'show';
+    let fin = false;
+    const end = () => { if (fin) return; fin = true; el.classList.add('out'); setTimeout(() => { el.className = ''; el.innerHTML = ''; done(); }, 340); };
+    setTimeout(end, Math.max(1200, ms));
+    el.onclick = end;   // タップで飛ばせる
+  });
+}
+
 /* ---------- overlays ---------- */
 function showOverlay(html) { if (!HAS_DOM) return; const o = document.getElementById('overlay'); o.innerHTML = html; o.classList.add('show'); try { bgmUpdate(); } catch (e) {} }
 function hideOverlay() { if (!HAS_DOM) return; document.getElementById('overlay').classList.remove('show'); }
@@ -1641,12 +1706,28 @@ function showTitle() {
     </div>
   </div>`);
 }
+async function startGame() {
+  if (startGame.busy) return; startGame.busy = true;
+  try {
+    audioUnlock();
+    const tip = setTimeout(() => showOverlay('<div class="panel" style="text-align:center"><h2 style="margin:0">BGMを読み込み中…</h2></div>'), 250);
+    await bgmReady(['start', 'game'], 8000);
+    clearTimeout(tip);
+    S.chips = { p: startChips(), c: startChips() }; S.pot = 0; S.handNo = 0; S.gauge = 0; S.bet = 1; S.pendingSkill = null; S.skill = null;
+    S.inGame = true; hideOverlay();
+    const dur = BGM_BUF.start && S.settings.bgm > 0 ? BGM_BUF.start.duration : 0;
+    playJingle('start');
+    await showVS(dur ? dur * 1000 - 350 : 2200);
+    act('start');
+  } finally { startGame.busy = false; }
+}
 function showHandSelect() {
   const H = [[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞', 'どちらかが飛ぶまで']];
   showOverlay(`<div class="panel">
     <h2>局数を選んでください</h2>
-    <p style="color:var(--muted)">持ち点 ${startChips()} ・ 選ぶとすぐに始まります</p>
-    <div class="menuBtns">${H.map(([v, l, sub]) => `<button class="btn ${S.maxHands === v ? '' : 'ghost'}" data-act="go" data-v="${v}">${l}${sub ? `<small style="display:block;font-size:.6em;font-weight:700;opacity:.8">${sub}</small>` : ''}</button>`).join('')}</div>
+    <p style="color:var(--muted)">持ち点 ${startChips()}</p>
+    <div class="handPick">${H.map(([v, l, sub]) => `<button class="btn ${S.maxHands === v ? '' : 'ghost'}" data-act="pickHands" data-v="${v}" aria-pressed="${S.maxHands === v}">${l}${sub ? `<small>${sub}</small>` : ''}</button>`).join('')}</div>
+    <div class="menuBtns">${btn('go', '対局開始 ▶')}</div>
     <div class="row"><span></span>${btn('toTitle', '◀ 戻る', 'ghost sm')}</div>
   </div>`);
 }
@@ -1785,11 +1866,8 @@ function act(a, ds) {
     case 'begin': showHandSelect(); break;
     case 'settings': toggleMenu(true); break;
     case 'toTitle': showTitle(); break;
-    case 'go': {
-      S.maxHands = +ds.v; saveSettings();
-      S.chips = { p: startChips(), c: startChips() }; S.pot = 0; S.handNo = 0; S.gauge = 0; S.bet = 1; S.pendingSkill = null; S.skill = null;
-      S.inGame = true; act('start'); break;
-    }
+    case 'pickHands': S.maxHands = +ds.v; saveSettings(); document.querySelectorAll('[data-act=pickHands]').forEach(b => { const on = +b.dataset.v === S.maxHands; b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on); }); break;
+    case 'go': startGame(); break;
     case 'hands': S.maxHands = +ds.v; saveSettings(); showTitle(); break;
     case 'guide': showGuide(0, 'title'); break;
     case 'guideMenu': {
@@ -2025,7 +2103,7 @@ if (HAS_DOM) {
   const go = () => { if (seen) showTitle(); else showGuide(0, 'title'); };
   showLoading();
   bgmPrefetch();
-  preloadTiles().then(go, go);
+  Promise.all([preloadTiles(), bgmDownloaded()]).then(go, go);
 }
 /* ---------- 牌画像の事前読み込み：図柄をデコードしてから画面を出す（白い牌が一瞬見えるのを防ぐ） ---------- */
 function tileArtURLs() {
@@ -2049,7 +2127,7 @@ function preloadTiles() {
   return Promise.race([all, new Promise(r => setTimeout(r, 6000))]);
 }
 function showLoading() {
-  showOverlay('<div class="panel" style="text-align:center"><h2 style="margin:0">牌を読み込み中…</h2></div>');
+  showOverlay('<div class="panel" style="text-align:center"><h2 style="margin:0">読み込み中…</h2><p style="color:var(--muted);margin:8px 0 0">牌とBGMを準備しています</p></div>');
 }
 </script>
 </body>
