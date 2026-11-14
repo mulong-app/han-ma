@@ -648,7 +648,7 @@ function audioUnlock() {
   if (!HAS_DOM) return;
   try {
     if (!AC) {
-      const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+      const C = window.AudioContext || window.webkitAudioContext; if (!C) return; if (!Object.keys(BGM_RAW).length) bgmPrefetch();
       AC = new C(); SE_BUS = AC.createGain(); SE_BUS.connect(AC.destination); BGM_BUS = AC.createGain(); BGM_BUS.connect(AC.destination);
       const n = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate), d = n.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; NOISE = n;
@@ -694,40 +694,65 @@ function sfx(kind) {
     case 'skill': [60, 64, 67, 72, 76].forEach((n, i) => tone(t + i * 0.05, NOTE(n), 0.3, { type: 'sawtooth', vol: 0.06 })); break;
   }
 }
-/* ---------- BGM：bgm/ に置いた曲を場面ごとにループ再生（ファイルが無ければ無音） ---------- */
-const BGM_TRACKS = { title: 'bgm/title.m4a', game: 'bgm/game.m4a', tense: 'bgm/tense.m4a' };
-const BGM_BUF = {}; let bgmNow = null, bgmSrc = null, bgmGain = null;
-function bgmVolume() { if (BGM_BUS) BGM_BUS.gain.value = (S.settings.bgm || 0) * 0.6; }
+/* ---------- BGM・ジングル：bgm/ の曲を場面ごとに再生（ファイルが無ければ無音） ---------- */
+// ループ位置は曲ごとに解析済み（イントロを1回流したあと loopStart〜loopEnd を繰り返す）
+const BGM_TRACKS = {
+  title: { url: 'bgm/title.m4a', loopStart: 68.20000, loopEnd: 151.37885 },
+  game: { url: 'bgm/game.m4a', loopStart: 117.03000, loopEnd: 219.42935 },
+};
+const JINGLES = { start: 'bgm/start.m4a', victory: 'bgm/victory.m4a', defeat: 'bgm/defeat.m4a' };
+// 音量バランス：曲ファイルは -16 LUFS にそろえてあり、効果音より控えめになるよう係数で下げる
+const BGM_LEVEL = 0.4, JINGLE_LEVEL = 0.62;
+const BGM_BUF = {}, BGM_RAW = {}; let bgmNow = null, bgmSrc = null, bgmGain = null, bgmHoldUntil = 0, bgmHoldTimer = 0;
+function bgmVolume() { if (BGM_BUS) BGM_BUS.gain.value = (S.settings.bgm || 0); }
+function bgmPrefetch() {   // ページ表示時にダウンロードだけ始める（デコードは最初のタップ後）
+  if (!HAS_DOM || location.protocol === 'file:') return;
+  const all = [['title', BGM_TRACKS.title.url], ['start', JINGLES.start], ['game', BGM_TRACKS.game.url], ['victory', JINGLES.victory], ['defeat', JINGLES.defeat]];
+  all.forEach(([k, url]) => { BGM_RAW[k] = fetch(url).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).catch(() => null); });
+}
 function bgmLoadAll() {
-  if (location.protocol === 'file:') return;
-  for (const [k, url] of Object.entries(BGM_TRACKS)) {
-    fetch(url).then(r => r.ok ? r.arrayBuffer() : Promise.reject()).then(a => new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng)))
-      .then(buf => { BGM_BUF[k] = buf; bgmUpdate(); }).catch(() => {});
+  for (const k of Object.keys(BGM_RAW)) {
+    BGM_RAW[k].then(a => a && new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng))).then(buf => { if (buf) { BGM_BUF[k] = buf; bgmUpdate(); } }).catch(() => {});
   }
 }
-function bgmScene() {
-  if (S.ended) return 'title';
-  if (S.riichi.p || S.riichi.c || (MAX_DRAWS - S.draws.p <= 5)) return BGM_BUF.tense ? 'tense' : 'game';
-  return 'game';
+function bgmScene() { return S.ended ? 'title' : 'game'; }
+function bgmStop(fade = 0.8) {
+  if (!bgmSrc) { bgmNow = null; return; }
+  const t = AC.currentTime, s0 = bgmSrc, g0 = bgmGain;
+  g0.gain.cancelScheduledValues(t); g0.gain.setValueAtTime(g0.gain.value, t); g0.gain.linearRampToValueAtTime(0, t + fade); s0.stop(t + fade + 0.05);
+  bgmSrc = null; bgmNow = null;
 }
 function bgmUpdate() {
   if (!AC || AC.state !== 'running') return;
-  const want = bgmScene(), key = BGM_BUF[want] ? want : (BGM_BUF.game ? 'game' : null);
+  if (AC.currentTime < bgmHoldUntil) return;        // ジングル再生中は待つ
+  const want = bgmScene(), key = BGM_BUF[want] ? want : null;
   if (key === bgmNow) return;
-  const t = AC.currentTime;
-  if (bgmSrc) { const s0 = bgmSrc, g0 = bgmGain; g0.gain.setValueAtTime(g0.gain.value, t); g0.gain.linearRampToValueAtTime(0, t + 0.8); s0.stop(t + 0.85); }
-  bgmNow = key; bgmSrc = null;
+  bgmStop();
   if (!key) return;
-  const src = AC.createBufferSource(), g = AC.createGain();
-  src.buffer = BGM_BUF[key]; src.loop = true; g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.8);
-  src.connect(g); g.connect(BGM_BUS); src.start(t); bgmSrc = src; bgmGain = g;
+  const t = AC.currentTime, tr = BGM_TRACKS[key], src = AC.createBufferSource(), g = AC.createGain();
+  src.buffer = BGM_BUF[key]; src.loop = true; src.loopStart = tr.loopStart; src.loopEnd = Math.min(tr.loopEnd, BGM_BUF[key].duration);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(BGM_LEVEL, t + 0.8);
+  src.connect(g); g.connect(BGM_BUS); src.start(t); bgmSrc = src; bgmGain = g; bgmNow = key;
+}
+function playJingle(name) {
+  if (!AC || AC.state !== 'running' || !BGM_BUF[name] || !(S.settings.bgm > 0)) return;
+  bgmStop(0.25);
+  const t = AC.currentTime + 0.05, src = AC.createBufferSource(), g = AC.createGain();
+  src.buffer = BGM_BUF[name]; g.gain.value = JINGLE_LEVEL; src.connect(g); g.connect(BGM_BUS); src.start(t);
+  bgmHoldUntil = t + BGM_BUF[name].duration + 0.2;
+  clearTimeout(bgmHoldTimer); bgmHoldTimer = setTimeout(bgmUpdate, (bgmHoldUntil - AC.currentTime) * 1000 + 30);
+}
+function bgmOnEvent(ev) {
+  if (ev.type === 'hand_start' && S.handNo === 1) playJingle('start');
+  else if (ev.type === 'game_end') { if (ev.result === 'win') playJingle('victory'); else if (ev.result === 'lose') playJingle('defeat'); else bgmUpdate(); }
+  else bgmUpdate();
 }
 
 /* ---------- events (image-gen hook) ---------- */
 function emit(type, data) {
   const ev = Object.assign({ type, hand: S.handNo, t: Date.now() }, data || {});
   S.log.unshift(ev); if (S.log.length > 80) S.log.pop();
-  if (HAS_DOM) { try { window.dispatchEvent(new CustomEvent('hanma:event', { detail: ev })); } catch (e) {} renderLog(); try { bgmUpdate(); } catch (e) {} }
+  if (HAS_DOM) { try { window.dispatchEvent(new CustomEvent('hanma:event', { detail: ev })); } catch (e) {} renderLog(); try { bgmOnEvent(ev); } catch (e) {} }
 }
 
 /* ---------- hand setup ---------- */
@@ -1931,6 +1956,7 @@ if (HAS_DOM) {
   let seen = false; try { seen = localStorage.getItem('hanma_guide_seen') === '1'; } catch (e) {}
   const go = () => { if (seen) showTitle(); else showGuide(0, 'title'); };
   showLoading();
+  bgmPrefetch();
   preloadTiles().then(go, go);
 }
 /* ---------- 牌画像の事前読み込み：図柄をデコードしてから画面を出す（白い牌が一瞬見えるのを防ぐ） ---------- */

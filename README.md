@@ -40,3 +40,9 @@ sw.js                  オフライン用キャッシュ
 - ルールの元ネタ：パラダイスシティ カジノ「韓麻」
 
 ※ 実在のカジノとは無関係の非公式ファンメイド作品です。賭博目的での利用はできません。
+
+## BGM・効果音
+- 効果音はWeb Audioで合成しています（音声ファイルなし）。
+- BGM・ジングルは `bgm/` にあります（title / game / start / victory / defeat、AAC 128kbps、-16 LUFS）。
+  - title・game はイントロを1回流したあと、曲中のループ区間を繰り返します（区間は index.html の `BGM_TRACKS`）。
+  - 音量は効果音より控えめになるよう `BGM_LEVEL` / `JINGLE_LEVEL` で調整しています。
