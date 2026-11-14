@@ -189,6 +189,9 @@ table.items td:last-child{text-align:right;font-weight:900}
 .gdots i.on{background:var(--gold2)}
 #tilewarm{position:absolute;left:2px;bottom:2px;display:flex;flex-wrap:nowrap;gap:0;opacity:.011;pointer-events:none;z-index:1}
 #tilewarm .tile{--u:6px;box-shadow:none}
+/* ---------- main menu ---------- */
+.menuBtns{display:flex;flex-direction:column;gap:12px;margin:18px 0 8px}
+.menuBtns .btn{width:100%;font-size:22px;padding:14px 18px}
 /* ---------- waits ---------- */
 .wslot{display:contents}
 .waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
@@ -492,7 +495,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">おすすめ牌の表示（勧） <input type="checkbox" id="setAssist" checked></label>
       <div class="opts" style="margin-top:8px">
         <button class="btn ghost sm" data-act="guideMenu">遊び方</button>
-        <button class="btn ghost sm" data-act="restart">最初から</button>
+        <button class="btn ghost sm" data-act="restart">メインメニューへ</button>
       </div>
     </div>
     <div class="card">
@@ -715,7 +718,7 @@ function bgmLoadAll() {
     BGM_RAW[k].then(a => a && new Promise((ok, ng) => AC.decodeAudioData(a, ok, ng))).then(buf => { if (buf) { BGM_BUF[k] = buf; bgmUpdate(); } }).catch(() => {});
   }
 }
-function bgmScene() { return S.ended ? 'title' : 'game'; }
+function bgmScene() { return S.inGame ? 'game' : 'title'; }
 function bgmStop(fade = 0.8) {
   if (!bgmSrc) { bgmNow = null; return; }
   const t = AC.currentTime, s0 = bgmSrc, g0 = bgmGain;
@@ -1609,13 +1612,20 @@ function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
     <p>パラダイスシティの韓国式麻雀「韓麻」をもとにした、CPUと1対1のスピード麻雀です。役はなく、ドラ・ロン・ツモ・リーチの点を足すだけ。</p>
-    <div class="row" style="margin-top:8px;justify-content:flex-start">${btn('guide', '遊び方・ルール', 'ghost sm')}</div>
-    <h3>局数</h3>
-    <div class="opts">${[[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞（どちらかが飛ぶまで）']].map(([v, l]) => `<button class="opt ${S.maxHands === v ? 'on' : ''}" data-act="hands" data-v="${v}">${l}</button>`).join('')}</div>
-    <h3>CPUの強さ</h3>
-    <div class="opts">${['weak', 'mid', 'strong'].map(l => `<button class="opt ${S.settings.level === l ? 'on' : ''}" data-act="level" data-v="${l}">${{ weak: '弱', mid: '中', strong: '強' }[l]}<small>${{ weak: 'ときどき悪手', mid: '効率重視', strong: 'リーチに少し守る' }[l]}</small></button>`).join('')}</div>
-    ${settingsHTML()}
-    <div class="row"><span style="color:var(--muted);font-size:13px">持ち点 ${startChips()} · ${S.maxHands ? `全${S.maxHands}局` : 'どちらかが飛ぶまで'}</span>${btn('begin', 'ゲーム開始 ▶')}</div>
+    <div class="menuBtns">
+      ${btn('begin', '対局開始 ▶')}
+      ${btn('settings', '設定', 'ghost')}
+      ${btn('guide', '遊び方・ルール', 'ghost')}
+    </div>
+  </div>`);
+}
+function showHandSelect() {
+  const H = [[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞', 'どちらかが飛ぶまで']];
+  showOverlay(`<div class="panel">
+    <h2>局数を選んでください</h2>
+    <p style="color:var(--muted)">持ち点 ${startChips()} ・ 選ぶとすぐに始まります</p>
+    <div class="menuBtns">${H.map(([v, l, sub]) => `<button class="btn ${S.maxHands === v ? '' : 'ghost'}" data-act="go" data-v="${v}">${l}${sub ? `<small style="display:block;font-size:.6em;font-weight:700;opacity:.8">${sub}</small>` : ''}</button>`).join('')}</div>
+    <div class="row"><span></span>${btn('toTitle', '◀ 戻る', 'ghost sm')}</div>
   </div>`);
 }
 /* ---------- 遊び方ガイド ---------- */
@@ -1705,16 +1715,17 @@ function showResult(r) {
   showOverlay(`<div class="panel">${html}</div>`);
 }
 function showFinal() {
+  S.inGame = false;
   const p = S.chips.p, c = S.chips.c, res = p > c ? 'WIN' : p < c ? 'LOSE' : 'DRAW';
   emit('game_end', { result: res.toLowerCase(), chips: { ...S.chips } });
   cutin(res, res === 'WIN' ? 'p' : 'c', 'big', 'game_' + res.toLowerCase());
   showOverlay(`<div class="panel"><h2>${res === 'WIN' ? 'あなたの勝ち' : res === 'LOSE' ? 'CPUの勝ち' : '引き分け'}</h2>
     <p style="font-size:18px">あなた <b style="color:var(--gold2)">${p}</b> 対 CPU <b style="color:#ffb0b0">${c}</b> チップ（${S.handNo}局）</p>
-    <div class="row"><span></span>${btn('restart', 'もう一度 ▶')}</div></div>`);
+    <div class="row"><span></span>${btn('restart', 'メインメニューへ ▶')}</div></div>`);
 }
 function resetGame() {
   setPause(false);
-  S.token++; S.ended = true; clearTimer();
+  S.token++; S.ended = true; S.inGame = false; clearTimer();
   S.chips = { p: startChips(), c: startChips() }; S.pot = 0; S.handNo = 0; S.gauge = 0; S.bet = 1; S.pendingSkill = null; S.skill = null;
   render(); showTitle();
 }
@@ -1723,7 +1734,14 @@ function resetGame() {
 function act(a, ds) {
   switch (a) {
     case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
-    case 'begin': if (S.handNo === 0) S.chips = { p: startChips(), c: startChips() }; showPrehand(); break;
+    case 'begin': showHandSelect(); break;
+    case 'settings': toggleMenu(true); break;
+    case 'toTitle': showTitle(); break;
+    case 'go': {
+      S.maxHands = +ds.v; saveSettings();
+      S.chips = { p: startChips(), c: startChips() }; S.pot = 0; S.handNo = 0; S.gauge = 0; S.bet = 1; S.pendingSkill = null; S.skill = null;
+      S.inGame = true; act('start'); break;
+    }
     case 'hands': S.maxHands = +ds.v; saveSettings(); showTitle(); break;
     case 'guide': showGuide(0, 'title'); break;
     case 'guideMenu': {
@@ -1750,8 +1768,8 @@ function act(a, ds) {
       if (S.pendingSkill) { S.gauge -= SKILLS[S.pendingSkill].cost; S.skill = S.pendingSkill; if (SKILLS[S.skill].fix) S.bet = 1; }
       else S.skill = null;
       S.pendingSkill = null; startHand(); break;
-    case 'next': if (isOver()) showFinal(); else showPrehand(); break;
-    case 'restart': resetGame(); break;
+    case 'next': if (isOver()) showFinal(); else act('start'); break;
+    case 'restart': toggleMenu(false); resetGame(); break;
     case 'gaugeMax': S.gauge = 100; render(); if (document.getElementById('overlay').classList.contains('show') && S.ended && S.handNo >= 0 && document.querySelector('[data-act="start"]')) showPrehand(); break;
     case 'tsumo': if (S.phase === 'discard' && S.opts.tsumo) win('p', 'tsumo'); break;
     case 'minogashi': if (S.phase === 'discard') discardTile('p', S.drawn.p); break;
