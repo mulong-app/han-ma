@@ -273,6 +273,8 @@ body{touch-action:manipulation;overscroll-behavior:none;-webkit-user-select:none
 .priver{width:470px;height:248px;padding:6px 8px;--rw:56px;overflow:hidden;display:flex;justify-content:center}
 .priver .river{--rw:56px;max-width:none;width:calc((56px + 3px)*6 + 26px);min-height:0;gap:3px;justify-content:flex-start;align-content:flex-start}
 .priver .river.opp{justify-content:flex-start;align-content:flex-start}
+.priver.d2,.priver.d2 .river{--rw:46px}.priver.d2 .river{width:calc((46px + 3px)*8 + 20px)}
+.priver.d3,.priver.d3 .river{--rw:40px}.priver.d3 .river{width:calc((40px + 3px)*10 + 16px)}
 .pstat{width:100%;box-sizing:border-box;display:flex;justify-content:center;align-items:center;min-height:100px;padding:4px;--tw:46px;--rw:36px}
 .pstat .center{padding:0}
 .portrait .mrow{padding:16px 0 0;justify-content:center}
@@ -1135,6 +1137,8 @@ function meldsHTML(who, sm) {
     m.type === 'ankan' && (i === 0 || i === 3) ? tileHTML(t, { back: true, sm }) : tileHTML(t, { sm })).join('')}</div>`).join('');
 }
 const wmOf = who => (S.handNo % 2 === 1 ? 'p' : 'c') === who ? '先攻' : '後攻';
+// 捨て牌が増えたら牌を小さくして1段の枚数を増やす（3段に収める）
+const rivDense = who => { const n = Math.max(S.river.p.length, S.river.c.length); return n > 24 ? 'd3' : n > 18 ? 'd2' : ''; };
 function riverHTML(who) {
   return S.river[who].map(t => {
     let cls = t.side ? 'side' : '';
@@ -1262,9 +1266,9 @@ function render() {
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
     <div class="pspace"></div>
     <div class="pub">
-      <div class="pbox priver" data-wm="${wmOf('c')}"><div class="river opp">${riverHTML('c')}</div></div>
+      <div class="pbox priver ${rivDense('c')}" data-wm="${wmOf('c')}"><div class="river opp">${riverHTML('c')}</div></div>
       <div class="pbox pstat"><div class="center">${centerHTML}</div></div>
-      <div class="pbox priver" data-wm="${wmOf('p')}"><div class="river">${riverHTML('p')}</div></div>
+      <div class="pbox priver ${rivDense('p')}" data-wm="${wmOf('p')}"><div class="river">${riverHTML('p')}</div></div>
       ${choose}
       ${winpop}
     </div>
