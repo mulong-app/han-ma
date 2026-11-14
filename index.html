@@ -145,6 +145,14 @@ button{font-family:inherit}
 .opt .lv{font-size:10px;color:#2a1a05;background:var(--gold);border-radius:4px;padding:1px 5px;margin-right:6px}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap}
 .rhand{display:flex;gap:2px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
+.rwin{container-type:inline-size;display:flex;align-items:flex-end;margin:12px 0 6px;width:100%}
+.rwin .tile{--u:min(64px, calc((100cqw - 26px) / var(--n)))}
+.rw-hand{display:flex;gap:2px;flex-wrap:nowrap;align-items:flex-end}
+.rw-win{display:flex;flex-direction:column;align-items:center;gap:16px;margin-left:auto;padding-left:14px}
+.rw-win span{font-size:13px;font-weight:900;color:var(--gold2);letter-spacing:.15em}
+.rw-melds{display:flex;align-items:center;gap:10px;margin:4px 0 8px;--rw:40px}
+.rw-melds > span{font-size:13px;font-weight:900;color:var(--muted);letter-spacing:.15em}
+.rw-melds .tile{--u:40px}
 .rhand .gap{width:10px}
 .rhand .tile{--u:34px}
 table.items{width:100%;border-collapse:collapse;font-size:15px;margin-top:6px}
@@ -528,6 +536,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
       <label class="set">時間切れ
         <select id="setTimeout"><option value="pot" selected>チップ1枚を供託して続行</option><option value="auto">自動で打牌</option></select></label>
       <label class="set">上スワイプで打牌 <input type="checkbox" id="setSwipe" checked></label>
+      <label class="set">スライドの慣性
+        <select id="setInertia"><option value="off">なし（指を離した位置で止まる）</option><option value="weak">弱</option><option value="mid" selected>中</option><option value="strong">強</option></select></label>
       <label class="set">大きい牌のタップ
         <select id="setTap"><option value="double" selected>ダブルタップ（選択→打牌）</option><option value="single">シングルタップで打牌</option><option value="off">OFF</option></select></label>
       <label class="set">自動鳴き（ポン・カン） <input type="checkbox" id="setAutoCall"></label>
@@ -598,7 +608,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -1464,7 +1474,9 @@ const CAR_U = 140, CAR_PITCH = 156;
 const LIFT_THRESHOLD = 110; // 上スワイプで打牌になる距離（画面座標）
 const car = { pos: 0, raf: 0, els: null, track: null, W: 0, target: 0, mode: '' };
 const CAR_GAIN = 1.8;      // 指の移動量に対する牌送りの軽さ（大きいほど少ない移動で送れる）
-const CAR_FRICTION = 0.9962; // フリックの減速（1に近いほど長く滑る）
+// フリックの減速（1に近いほど長く滑る）。設定「スライドの慣性」で切り替え
+const CAR_FRICTIONS = { off: 0, weak: 0.992, mid: 0.9962, strong: 0.998 };
+const carFriction = () => CAR_FRICTIONS[S.settings.inertia] ?? 0.9962;
 function carList() {
   if (canSelect()) return selList();
   const mh = sortedHand('p'); return mh.dt ? mh.rest.concat([mh.dt]) : mh.rest;
@@ -1545,7 +1557,7 @@ function carFling(v, lo = -Infinity, hi = Infinity) { // v: 牌/ms。lo〜hi の
   let last = performance.now();
   const step = now => {
     const dt = Math.min(32, now - last); last = now;
-    car.pos += v * dt; v *= Math.pow(CAR_FRICTION, dt);
+    car.pos += v * dt; v *= Math.pow(carFriction(), dt);
     if (car.pos <= lo) { car.pos = lo; v = 0; } else if (car.pos >= hi) { car.pos = hi; v = 0; }
     applyCar(); carSync();
     if (Math.abs(v) < 0.0016) { car.raf = 0; car.mode = ''; carAnimateTo(Math.max(lo, Math.min(hi, Math.round(car.pos)))); return; }
@@ -1694,7 +1706,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1806,7 +1818,11 @@ function showResult(r) {
   if (r.kind === 'win') {
     const who = r.who, h = S.hands[who].filter(t => t.id !== r.winTile.id).sort((a, b) => a.k - b.k);
     html = `<h2 class="r-title ${who}">${who === 'p' ? 'あなた' : 'CPU'}の${r.type === 'tsumo' ? 'ツモ' : 'ロン'}和了</h2>
-      <div class="rhand">${h.map(t => tileHTML(t)).join('')}<div class="gap"></div>${tileHTML(r.winTile, { cls: 'hl' })}<div class="gap"></div>${meldsHTML(who, false)}</div>
+      <div class="rwin" style="--n:${h.length + 1.6}">
+        <div class="rw-hand">${h.map(t => tileHTML(t)).join('')}</div>
+        <div class="rw-win"><span>${r.type === 'tsumo' ? 'ツモ' : 'ロン'}</span>${tileHTML(r.winTile, { cls: 'hl' })}</div>
+      </div>
+      ${S.melds[who].length ? `<div class="rw-melds"><span>鳴き</span>${meldsHTML(who, false)}</div>` : ''}
       <table class="items">${r.sc.items.map(([n, v]) => `<tr><td>${n}</td><td>${v}点</td></tr>`).join('')}</table>
       <div class="total">${r.sc.total}点 → ${who === 'p' ? '+' : '−'}${r.pay}<small> チップ${r.sc.raw > 20 ? '（上限20点）' : ''}</small></div>${r.potWon ? `<p class="pot" style="font-weight:900;font-size:16px">＋供託 ${r.potWon} チップ</p>` : ''}`;
     if (who === 'p') html += `<h3>CPUの手牌</h3><div class="rhand">${sortedHand('c').rest.concat(sortedHand('c').dt || []).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
@@ -1951,6 +1967,7 @@ if (HAS_DOM) {
   document.getElementById('setLayout').addEventListener('change', e => { S.settings.layout = e.target.value; try { localStorage.setItem('hanma_layout', e.target.value); } catch (er) {} fitStage(); });
   try { const hp = localStorage.getItem('hanma_haptic'); if (hp !== null) { S.settings.haptic = hp === '1'; document.getElementById('setHaptic').checked = S.settings.haptic; } } catch (e) {}
   document.getElementById('setHaptic').addEventListener('change', e => { S.settings.haptic = e.target.checked; try { localStorage.setItem('hanma_haptic', e.target.checked ? '1' : '0'); } catch (er) {} if (e.target.checked) haptic('call'); });
+  document.getElementById('setInertia').addEventListener('change', e => { S.settings.inertia = e.target.value; saveSettings(); });
   document.getElementById('setSwipe').addEventListener('change', e => { S.settings.swipe = e.target.checked; saveSettings(); render(); });
   document.getElementById('setTap').addEventListener('change', e => { S.settings.tap = e.target.value; S.raised = null; saveSettings(); render(); });
   document.getElementById('setAutoCall').addEventListener('change', e => { S.settings.autoCall = e.target.checked; saveSettings(); render(); });
@@ -1989,6 +2006,7 @@ if (HAS_DOM) {
       if (typeof st.autoCall === 'boolean') S.settings.autoCall = st.autoCall;
       if (typeof st.autoWin === 'boolean') S.settings.autoWin = st.autoWin;
       if (typeof st.se === 'number') S.settings.se = st.se;
+      if (['off', 'weak', 'mid', 'strong'].includes(st.inertia)) { S.settings.inertia = st.inertia; document.getElementById('setInertia').value = st.inertia; }
       if ([18, 20, 22, 24].includes(st.draws)) { S.settings.draws = st.draws; document.getElementById('setDraws').value = String(st.draws); }
       if (typeof st.bgm === 'number') S.settings.bgm = st.bgm;
       document.getElementById('setSwipe').checked = S.settings.swipe; document.getElementById('setTap').value = S.settings.tap;
@@ -2007,7 +2025,7 @@ if (HAS_DOM) {
       const n0 = carList().length, r0 = Math.round(car.pos), s0 = wrapI(r0, n0);
       car.pos = s0 + (car.pos - r0);
       const lo = n0 > 1 && s0 === 0 ? -n0 : 0, hi = n0 > 1 && s0 === n0 - 1 ? 2 * n0 - 1 : Math.max(0, n0 - 1);
-      drag = { type: 'car', sx: e.clientX, x: e.clientX, sy: e.clientY, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX]], target: e.target, raf: 0,
+      drag = { type: 'car', sx: e.clientX, x: e.clientX, sy: e.clientY, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX, e.clientY]], target: e.target, raf: 0,
         mode: '', onCenter: !!ct0 && +ct0.dataset.ci === s0, armed: false, lo, hi };
       e.preventDefault(); return;
     }
@@ -2036,7 +2054,23 @@ if (HAS_DOM) {
         return;
       }
       drag.x = e.clientX; if (Math.abs(drag.x - drag.sx) > 6) drag.moved = true;
-      const now = performance.now(); drag.hist.push([now, e.clientX]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 70) drag.hist.shift();
+      const now = performance.now(); drag.hist.push([now, e.clientX, e.clientY]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 70) drag.hist.shift();
+      // スライド中に上へ払ったら、その時点で中央の牌を持ち上げて上スワイプ打牌に切り替える
+      if (S.settings.swipe && drag.mode === 'h') {
+        drag.ry = Math.max(drag.ry ?? e.clientY, e.clientY);                // スライド中の一番下の位置
+        if (!drag.rx || e.clientY >= drag.ry - 2) drag.rx = e.clientX;      // 上に動き始めた地点のx
+        const up = drag.ry - e.clientY, side = Math.abs(e.clientX - drag.rx);
+        if (up > 22 * S.scale + 8 && up > side * 1.4) {
+          if (drag.raf) { cancelAnimationFrame(drag.raf); drag.raf = 0; }
+          const lo = drag.lo, hi = drag.hi;
+          car.pos = Math.max(lo, Math.min(hi, Math.round(car.pos))); applyCar(); carSync();
+          drag.mode = 'v'; drag.sy = drag.ry; drag.sx = drag.rx;
+          const el = car.els && car.els[wrapI(Math.round(car.pos), car.els.length)];
+          if (el) { el.classList.remove('back'); el.classList.add('lift'); drag.el = el; }
+          haptic('tick');
+          return;
+        }
+      }
       if (!drag.raf) {
         const d0 = drag;
         d0.raf = requestAnimationFrame(() => {
@@ -2090,7 +2124,7 @@ if (HAS_DOM) {
       if (d.raf) cancelAnimationFrame(d.raf);
       const h = d.hist, a = h[0], b = h[h.length - 1], dt = b[0] - a[0];
       const v = dt > 0 && performance.now() - b[0] < 80 ? -(b[1] - a[1]) * CAR_GAIN / dt / (CAR_PITCH * S.scale) : 0;
-      if (Math.abs(v) > 0.002) carFling(v, d.lo, d.hi); else carAnimateTo(Math.max(d.lo, Math.min(d.hi, Math.round(car.pos))));
+      if (Math.abs(v) > 0.002 && S.settings.inertia !== 'off') carFling(v, d.lo, d.hi); else carAnimateTo(Math.max(d.lo, Math.min(d.hi, Math.round(car.pos))));
       return;
     }
     if (d.type === 'slider' && IS_IOS) haptic('tick');
