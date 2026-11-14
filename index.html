@@ -49,6 +49,16 @@ button{font-family:inherit}
 .cap{font-size:11px;color:var(--muted);font-weight:700;writing-mode:vertical-rl;letter-spacing:.1em}
 .info{display:grid;grid-template-columns:auto auto;gap:4px 14px;font-size:13px;color:var(--muted);font-weight:700}
 .info b{color:var(--ink);font-size:15px}
+.info2{display:flex;align-items:stretch;gap:10px}
+.info2 .st{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:86px;padding:4px 12px;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:12px}
+.info2 .st span{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.1em}
+.info2 .st b{font:900 34px/1.05 'Noto Serif JP',serif;color:var(--gold2)}
+.info2 .st b small{font-size:.5em;color:var(--muted);margin-left:2px}
+.info2 .st.low b{color:#ff8a8a}
+.portrait .info2 .st{min-width:120px;padding:6px 16px}
+.portrait .pstat .dorabox{--rw:44px;padding:8px 12px}
+.portrait .info2 .st span{font-size:16px}
+.portrait .info2 .st b{font-size:46px}
 .info .big{font-family:'Noto Serif JP',serif;font-size:22px;color:var(--gold2)}
 .mid{flex:1;display:flex;flex-direction:column;justify-content:center;gap:4px}
 .rivers{display:flex;justify-content:center;gap:10px}
@@ -1228,10 +1238,9 @@ function render() {
   const left = w => MAX_DRAWS - S.draws[w];
   const centerHTML = `
         <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
-        <div class="info">
-          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
-          <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
-          <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
+        <div class="info2">
+          <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
+          <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
         </div>`;
   if (S.portrait) {
     const handW = 692 * (1 - 2 * HAND_MARGIN), barM = ((1 - (1 - 2 * HAND_MARGIN) * SLIDER_RATIO) / 2) * 100;
@@ -1311,10 +1320,9 @@ function render() {
       <div class="rivers"><div class="river opp" data-wm="${wmOf('c')}">${riverHTML('c')}</div></div>
       <div class="center">
         <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
-        <div class="info">
-          <span>局</span><b class="big">${S.handNo}<small style="font-size:13px;color:var(--muted)"> / ${HANDS_LABEL(S.maxHands)}</small></b>
-          <span>点数</span><b>ロン${winPts(false)}／ツモ${winPts(true)}</b>
-          <span>残りツモ</span><b>あなた ${left('p')} · CPU ${left('c')}</b>
+        <div class="info2">
+          <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
+          <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
         </div>
       </div>
       <div class="rivers"><div class="river" data-wm="${wmOf('p')}">${riverHTML('p')}</div></div>
