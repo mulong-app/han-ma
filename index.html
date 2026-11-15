@@ -165,12 +165,12 @@ table.items td:last-child{text-align:right;font-weight:900}
 
 #cutin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;z-index:15;opacity:0}
 #cutin.show{animation:cut 1s ease-out forwards}
-#cutin.art.show{animation:cutArt .4s ease-out forwards}
+#cutin.art.show{animation:cutArt .6s ease-out forwards}
 #cutin .strip{position:absolute;left:-8%;right:-8%;top:50%;height:46%;transform:translateY(-50%) skewY(-6deg);overflow:hidden;
-  border-top:4px solid #f6e2a0;border-bottom:4px solid #f6e2a0;box-shadow:0 0 40px rgba(0,0,0,.8);background:#300;animation:stripIn .1s cubic-bezier(.2,.9,.2,1) both}
-#cutin .strip .pic{position:absolute;inset:-12% 0;background-size:cover;transform:skewY(6deg) scale(1.08);animation:picPan .4s linear both}
+  border-top:4px solid #f6e2a0;border-bottom:4px solid #f6e2a0;box-shadow:0 0 40px rgba(0,0,0,.8);background:#300;animation:stripIn .14s cubic-bezier(.2,.9,.2,1) both}
+#cutin .strip .pic{position:absolute;inset:-12% 0;background-size:cover;transform:skewY(6deg) scale(1.08);animation:picPan .6s linear both}
 #cutin .strip::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(120,10,20,.55),transparent 45%,transparent 70%,rgba(0,0,0,.35))}
-#cutin.art .txt{position:relative;z-index:2;animation:txtPop .15s .02s cubic-bezier(.2,1.5,.4,1) both}
+#cutin.art .txt{position:relative;z-index:2;animation:txtPop .2s .04s cubic-bezier(.2,1.5,.4,1) both}
 #cutin.art .who{position:absolute;z-index:2;left:6%;top:calc(27% - 6px);font:900 26px/1 'Zen Kaku Gothic New',sans-serif;color:#fff;letter-spacing:.08em;text-shadow:0 0 10px #000,0 0 4px #000}
 .portrait #cutin.art .strip{height:34%}
 .portrait #cutin.art .who{top:calc(33% - 10px);font-size:30px}
