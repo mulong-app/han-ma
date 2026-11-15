@@ -20,6 +20,7 @@ html,body{height:100%;overflow:hidden}
 #viewport{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
 #stage{width:1280px;height:720px;flex:none;transform-origin:center center}
 .corner{position:absolute;top:14px;right:18px;z-index:45;display:flex;gap:8px}
+.btn.snd[aria-pressed="false"]{opacity:.45;text-decoration:line-through}
 #menu{position:absolute;top:60px;right:18px;width:340px;max-height:620px;overflow:auto;z-index:50;display:none;flex-direction:column;gap:10px;
   background:rgba(4,17,12,.96);border:1px solid var(--gold);border-radius:16px;padding:14px;box-shadow:0 20px 50px rgba(0,0,0,.6)}
 #menu.show{display:flex}
@@ -145,8 +146,8 @@ button{font-family:inherit}
 .opt .lv{font-size:10px;color:#2a1a05;background:var(--gold);border-radius:4px;padding:1px 5px;margin-right:6px}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:18px;flex-wrap:wrap}
 .rhand{display:flex;gap:2px;flex-wrap:wrap;align-items:flex-end;margin:10px 0}
-.rwin{container-type:inline-size;display:flex;align-items:flex-end;margin:12px 0 6px;width:100%}
-.rwin .tile{--u:min(64px, calc((100cqw - 26px) / var(--n)))}
+.rwin{display:flex;align-items:flex-end;margin:12px 0 6px;width:100%;min-width:0}
+.rwin .tile{--u:var(--ru,40px)}
 .rw-hand{display:flex;gap:2px;flex-wrap:nowrap;align-items:flex-end}
 .rw-win{display:flex;flex-direction:column;align-items:center;gap:16px;margin-left:auto;padding-left:14px}
 .rw-win span{font-size:13px;font-weight:900;color:var(--gold2);letter-spacing:.15em}
@@ -233,6 +234,10 @@ table.items td:last-child{text-align:right;font-weight:900}
 @keyframes vsInL{from{transform:translateX(-120%) skewY(-8deg);opacity:0}}
 @keyframes vsInR{from{transform:translateX(120%) skewY(-8deg);opacity:0}}
 @keyframes vsMark{from{transform:scale(3);opacity:0}}
+/* ---------- tap to start ---------- */
+.tapstart{padding:36px 26px;animation:tsPulse 1.6s ease-in-out infinite alternate}
+.tapstart .brand2{font:900 72px/1 'Noto Serif JP',serif;color:var(--gold2);letter-spacing:.2em}
+@keyframes tsPulse{from{box-shadow:0 0 0 rgba(216,180,90,0)}to{box-shadow:0 0 40px rgba(216,180,90,.35)}}
 /* ---------- main menu ---------- */
 .menuBtns{display:flex;flex-direction:column;gap:12px;margin:18px 0 8px}
 .menuBtns .btn{width:100%;font-size:22px;padding:14px 18px}
@@ -517,6 +522,8 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
     <div id="pause"></div>
     <div id="toast"></div>
     <div class="corner">
+      <button class="btn ghost sm snd" data-act="togBgm" aria-pressed="true">♪ BGM</button>
+      <button class="btn ghost sm snd" data-act="togSe" aria-pressed="true">効果音</button>
       <button class="btn ghost sm" data-act="pause">一時停止 (P)</button>
       <button class="btn ghost sm" data-act="menu">メニュー</button>
     </div>
@@ -608,7 +615,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -710,8 +717,9 @@ function audioUnlock() {
       const n = AC.createBuffer(1, AC.sampleRate * 0.5, AC.sampleRate), d = n.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; NOISE = n;
       bgmVolume(); bgmLoadAll();
+      AC.onstatechange = () => { if (AC.state === 'running') bgmUpdate(); };
     }
-    if (AC.state !== 'running') AC.resume();
+    if (AC.state !== 'running') { const pr = AC.resume(); if (pr && pr.then) pr.then(() => bgmUpdate(), () => {}); }
     // iOS：無音を1回鳴らして出力を有効化
     const b = AC.createBufferSource(); b.buffer = AC.createBuffer(1, 1, 22050); b.connect(AC.destination); b.start(0);
     bgmUpdate();
@@ -732,7 +740,7 @@ function clack(t, { vol = 0.5, freq = 2600, q = 1.2, dur = 0.05, body = 170 } = 
 }
 const NOTE = n => 440 * Math.pow(2, (n - 69) / 12);
 function sfx(kind) {
-  if (!HAS_DOM || !AC || AC.state !== 'running' || !(S.settings.se > 0)) return;
+  if (!HAS_DOM || !AC || AC.state !== 'running' || !S.settings.seOn || !(S.settings.se > 0)) return;
   SE_BUS.gain.value = S.settings.se;
   const t = AC.currentTime + 0.005;
   switch (kind) {
@@ -762,7 +770,11 @@ const JINGLES = { start: 'bgm/start.m4a', victory: 'bgm/victory.m4a', defeat: 'b
 // 音量バランス：曲ファイルは -16 LUFS にそろえてあり、効果音より控えめになるよう係数で下げる
 const BGM_LEVEL = 0.4, JINGLE_LEVEL = 0.62;
 const BGM_BUF = {}, BGM_RAW = {}; let bgmNow = null, bgmSrc = null, bgmGain = null, bgmHoldUntil = 0, bgmHoldTimer = 0;
-function bgmVolume() { if (BGM_BUS) BGM_BUS.gain.value = (S.settings.bgm || 0); }
+function bgmVolume() { if (BGM_BUS) BGM_BUS.gain.value = S.settings.bgmOn ? (S.settings.bgm || 0) : 0; }
+function syncSndBtns() {
+  document.querySelectorAll('[data-act=togBgm]').forEach(b => b.setAttribute('aria-pressed', S.settings.bgmOn));
+  document.querySelectorAll('[data-act=togSe]').forEach(b => b.setAttribute('aria-pressed', S.settings.seOn));
+}
 function bgmPrefetch() {   // ページ表示時にダウンロードだけ始める（デコードは最初のタップ後）
   if (!HAS_DOM || location.protocol === 'file:') return;
   const all = [['title', BGM_TRACKS.title.url], ['start', JINGLES.start], ['game', BGM_TRACKS.game.url], ['victory', JINGLES.victory], ['defeat', JINGLES.defeat]];
@@ -805,7 +817,7 @@ function bgmUpdate() {
   src.connect(g); g.connect(BGM_BUS); src.start(t); bgmSrc = src; bgmGain = g; bgmNow = key;
 }
 function playJingle(name) {
-  if (!AC || AC.state !== 'running' || !BGM_BUF[name] || !(S.settings.bgm > 0)) return;
+  if (!AC || AC.state !== 'running' || !BGM_BUF[name] || !S.settings.bgmOn || !(S.settings.bgm > 0)) return;
   bgmStop(0.25);
   const t = AC.currentTime + 0.05, src = AC.createBufferSource(), g = AC.createGain();
   src.buffer = BGM_BUF[name]; g.gain.value = JINGLE_LEVEL; src.connect(g); g.connect(BGM_BUS); src.start(t);
@@ -1353,7 +1365,7 @@ function render() {
       <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
     </div>
     <div class="pbar">
-      <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
+      <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
     </div>
     <div class="pspace bottom"></div>`;
     carSnap();
@@ -1706,7 +1718,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1832,7 +1844,16 @@ function showResult(r) {
   if (S.riichi.p || S.riichi.c) html += `<h3>裏ドラ表示</h3><div class="rhand">${S.uraInd.map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   html += `<div class="row">${FEATURE_SKILLS ? `<span style="color:#c9a0ff;font-weight:900">ゲージ +${r.g} → ${S.gauge}</span>` : '<span></span>'}${btn('next', isOver() ? '結果へ ▶' : '次の局へ ▶')}</div>`;
   showOverlay(`<div class="panel">${html}</div>`);
+  fitResultHand();
   if (S.ptsShow) ptsCount();
+}
+// 結果画面の手牌：幅に合わせて牌の大きさを決める（14枚でも1段に収める）
+function fitResultHand() {
+  const el = document.querySelector('#overlay .rwin'); if (!el) return;
+  const n = +getComputedStyle(el).getPropertyValue('--n') || 14.6;
+  const w = el.clientWidth;   // 画面の拡大縮小前の幅（論理px）
+  const u = Math.max(22, Math.min(64, Math.floor((w - 30 - n * 2) / n)));
+  el.style.setProperty('--ru', u + 'px');
 }
 /* 点数バーを1点ずつ動かす（テテテテ…） */
 function ptsCount() {
@@ -1926,6 +1947,9 @@ function act(a, ds) {
     case 'pause': setPause(true); break;
     case 'menu': toggleMenu(); break;
     case 'seTest': sfx('win'); break;
+    case 'togBgm': S.settings.bgmOn = !S.settings.bgmOn; saveSettings(); bgmVolume(); syncSndBtns(); break;
+    case 'togSe': S.settings.seOn = !S.settings.seOn; saveSettings(); syncSndBtns(); if (S.settings.seOn) sfx('discard'); break;
+    case 'tapStart': audioUnlock(); go2(); break;
     case 'hapticTest': { const on = S.settings.haptic, se = S.settings.se; S.settings.haptic = true; S.settings.se = 0; haptic('win'); S.settings.haptic = on; S.settings.se = se; } break;
     case 'selL': moveSel(-1); break;
     case 'pkan':
@@ -2006,6 +2030,8 @@ if (HAS_DOM) {
       if (typeof st.autoCall === 'boolean') S.settings.autoCall = st.autoCall;
       if (typeof st.autoWin === 'boolean') S.settings.autoWin = st.autoWin;
       if (typeof st.se === 'number') S.settings.se = st.se;
+      if (typeof st.bgmOn === 'boolean') S.settings.bgmOn = st.bgmOn;
+      if (typeof st.seOn === 'boolean') S.settings.seOn = st.seOn;
       if (['off', 'weak', 'mid', 'strong'].includes(st.inertia)) { S.settings.inertia = st.inertia; document.getElementById('setInertia').value = st.inertia; }
       if ([18, 20, 22, 24].includes(st.draws)) { S.settings.draws = st.draws; document.getElementById('setDraws').value = String(st.draws); }
       if (typeof st.bgm === 'number') S.settings.bgm = st.bgm;
@@ -2134,7 +2160,16 @@ if (HAS_DOM) {
   window.addEventListener('resize', fitStage); fitStage();
   renderSide();
   let seen = false; try { seen = localStorage.getItem('hanma_guide_seen') === '1'; } catch (e) {}
-  const go = () => { if (seen) showTitle(); else showGuide(0, 'title'); };
+  const go2 = () => { if (seen) showTitle(); else showGuide(0, 'title'); };
+  window.go2 = go2;
+  // 読み込みが終わったら「タップしてはじめる」を出す（ブラウザは最初のタップまで音を鳴らせないため、ここで音を有効にする）
+  const go = () => {
+    if (location.protocol === 'file:' || !(window.AudioContext || window.webkitAudioContext)) return go2();
+    showOverlay(`<div class="panel tapstart" data-act="tapStart" style="text-align:center;cursor:pointer">
+      <div class="brand2">韓麻</div><p style="font-size:22px;font-weight:900;margin:14px 0 4px">タップしてはじめる</p>
+      <p style="color:var(--muted);margin:0">BGM・効果音が流れます（右上のボタンでON/OFF）</p></div>`);
+  };
+  syncSndBtns();
   showLoading();
   bgmPrefetch();
   Promise.all([preloadTiles(), bgmDownloaded()]).then(go, go);
