@@ -52,3 +52,5 @@ sw.js                  オフライン用キャッシュ
 
 顔画像 `chars/<id>.jpg`（384px角）と全身 `chars/<id>_full.jpg`（幅1280px）を使います（無ければシルエット）。
 id: jeanne / pompadour / genghis / delacroix / saigo / libai / rasputin / jeanne_ura
+
+勝敗画面の画像（任意）：`chars/<id>_lose.jpg`（あなたの勝ち）／`chars/<id>_win.jpg`（相手の勝ち）。無ければ `_full.jpg` を表示します。
