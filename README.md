@@ -47,5 +47,8 @@ sw.js                  オフライン用キャッシュ
   - title・game はイントロを1回流したあと、曲中のループ区間を繰り返します（区間は index.html の `BGM_TRACKS`）。
   - 音量は効果音より控えめになるよう `BGM_LEVEL` / `JINGLE_LEVEL` で調整しています。
 
-## キャラクター（追加予定）
-対局開始の対戦カットインは `index.html` の `CHARACTERS` を参照します。`img` に画像のパス（例: `chars/player.png`）を入れると、シルエットの代わりに表示されます。
+## 対戦相手
+対戦相手選択 → 強さ・局数 → 対局開始。能力は `index.html` の `OPPONENTS` と各処理（`hideDora` / `libaiWild` / `oppSees` / `dealOneShanten` / `scoreWin`）にあります。
+
+顔画像は `chars/<id>.png` を置くと自動で表示されます（無ければシルエット）。
+id: jeanne / pompadour / genghis / delacroix / saigo / libai / rasputin / jeanne_ura

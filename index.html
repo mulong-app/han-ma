@@ -221,12 +221,14 @@ table.items td:last-child{text-align:right;font-weight:900}
 #vs .side.p{bottom:12%;left:7%;animation:vsInL .5s .1s cubic-bezier(.2,.9,.2,1) both}
 #vs .side.c{top:12%;right:7%;flex-direction:row-reverse;animation:vsInR .5s .22s cubic-bezier(.2,.9,.2,1) both}
 #vs .por{width:180px;height:180px;border-radius:50%;overflow:hidden;border:4px solid #f6e2a0;background:rgba(0,0,0,.35);box-shadow:0 8px 30px rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
-#vs .por img{width:100%;height:100%;object-fit:cover}
+#vs .por,.oppCard .por,.oppPop .por{position:relative}
+#vs .por img,.oppCard .por img,.oppPop .por img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #vs .por svg{width:86%;height:86%}
 #vs .nm{font:900 46px/1.1 'Zen Kaku Gothic New',sans-serif;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.7)}
 #vs .nm small{display:block;font-size:20px;color:var(--gold2);letter-spacing:.1em}
 #vs .side.c .nm{text-align:right}
 #vs .mark{position:relative;font:900 120px/1 'Noto Serif JP',serif;color:#ffe14d;letter-spacing:-.04em;text-shadow:0 0 30px rgba(255,200,60,.8),0 6px 0 #7a5a16;animation:vsMark .5s .45s cubic-bezier(.2,1.6,.4,1) both}
+#vs .abil{position:absolute;top:calc(4% + 34px);left:6%;right:6%;text-align:center;font:700 18px/1.4 'Zen Kaku Gothic New',sans-serif;color:#fff;opacity:0;animation:vsFade .4s 1s both;text-shadow:0 2px 6px rgba(0,0,0,.8)}
 #vs .sub{position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
 #stage:not(.portrait) #vs .side.p{bottom:16%;left:10%}#stage:not(.portrait) #vs .side.c{top:16%;right:10%}
 @keyframes vsFade{from{opacity:0}to{opacity:1}}
@@ -242,6 +244,32 @@ table.items td:last-child{text-align:right;font-weight:900}
 .menuBtns{display:flex;flex-direction:column;gap:12px;margin:18px 0 8px}
 .menuBtns .btn{width:100%;font-size:22px;padding:14px 18px}
 .handPick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px}
+.handPick.c3{grid-template-columns:repeat(3,1fr)}
+.panel.wide{max-width:900px}
+.oppGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0 8px}
+.oppCard{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.25);color:var(--ink);cursor:pointer;font:inherit}
+.oppCard.cur{border-color:var(--gold);box-shadow:0 0 0 2px rgba(216,180,90,.35) inset}
+.oppCard.boss{background:linear-gradient(135deg,rgba(120,20,30,.45),rgba(0,0,0,.3));border-color:#b0505a}
+.oppCard .por{flex:none;width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid #f6e2a0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
+.oppCard .por svg,.oppPop .por svg{width:86%;height:86%}
+.oppCard .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.oppCard .tx b{font-size:17px}
+.oppCard .tx em{font-style:normal;font-size:11px;font-weight:900;color:#ff9aa2;letter-spacing:.1em}
+.oppCard .tx small{font-size:12px;color:var(--muted);line-height:1.35}
+.oppPop .head{display:flex;align-items:center;gap:16px}
+.oppPop .head .por{flex:none;width:110px;height:110px;border-radius:50%;overflow:hidden;border:3px solid #f6e2a0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
+.oppPop .head h2{margin:0}
+.oppPop .head p{margin:6px 0 0;color:var(--muted)}
+.oppPop h3{margin:14px 0 0}
+.bossTag{font-style:normal;font-size:13px;font-weight:900;color:#ff9aa2;letter-spacing:.1em}
+.tile.blackout{background:linear-gradient(180deg,#1b1b1f,#050506);border-color:#000;box-shadow:0 2px 0 #000;position:relative}
+.tile.blackout::after{content:'?';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#555;font-weight:900;font-size:calc(var(--u, 36px) * .6)}
+.xdora{align-self:center;margin-left:6px;font-weight:900;color:var(--gold2);font-size:20px}
+.portrait .xdora{font-size:26px}
+.tile.wild::before{content:'白';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;background:#fff;color:#333;border-radius:6px;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.5);z-index:2}
+.who .nm,.pbox .nm{white-space:nowrap}
+.abilTag{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.portrait .abilTag{font-size:15px}
 .handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
 .handPick .btn small{display:block;font-size:10px;font-weight:700;opacity:.8;margin-top:3px;white-space:nowrap}
 /* ---------- waits ---------- */
@@ -615,7 +643,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', opp: 'jeanne', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -634,6 +662,28 @@ function doraOf(k) {
   if (k <= 30) return k === 30 ? 27 : k + 1;
   return k === 33 ? 31 : k + 1;
 }
+const hideDora = () => oppIs('delacroix') && !S.ended;   // ドラクロワ：対局中はあなたにドラが見えない
+// 裏ジャンヌ：配牌を山との入れ替えでイーシャンテンにする
+function dealOneShanten(who) {
+  const h = S.hands[who], w = S.wall;
+  for (let it = 0; it < 4000; it++) {
+    const s0 = shAll(counts(h), 0); if (s0 === 1) return;
+    const i = (Math.random() * h.length) | 0, j = (Math.random() * w.length) | 0;
+    const a = h[i]; h[i] = w[j]; w[j] = a;
+    const s1 = shAll(counts(h), 0);
+    if (s1 < 1 || (s1 > s0 && Math.random() < 0.85)) { w[j] = h[i]; h[i] = a; }
+  }
+}
+// 李白：リーチ中に白をツモったら、待ち牌のどれかとして和了れる
+function libaiWild(who) {
+  if (!oppIs('libai') || !S.riichi[who]) return null;
+  const d = S.hands[who].find(t => t.id === S.drawn[who]); if (!d || d.k !== 31) return null;
+  const c = counts(S.hands[who]), open = S.melds[who].length; c[31]--;
+  const ws = []; for (const k of KINDS) { c[k]++; if (shAll(c, open) === -1) ws.push(k); c[k]--; }
+  return ws.length ? ws : null;
+}
+// ラスプーチン・裏ジャンヌ：あなたの待ちが見えている（リーチ中以外は当たり牌を切らない）
+const oppSees = () => oppIs('rasputin') || oppIs('jeanne_ura');
 function doraPts(k) { let n = 0; for (const d of S.doraKinds) if (d === k) n++; if (FIVES.includes(k)) n++; return n; }
 function later(fn, ms, allowEnded) { const tok = S.token; const run = () => { if (tok !== S.token) return; if (S.paused) return setTimeout(run, 150); if (S.ended && !allowEnded) return; fn(); }; setTimeout(run, ms); }
 function isClosed(who) { return S.melds[who].every(m => m.type === 'ankan'); }
@@ -681,7 +731,7 @@ function danger(k, seen) {
 /* evaluate every discard: lower key = better */
 function evalDiscards(who) {
   const h = S.hands[who], c = counts(h), open = S.melds[who].length, seen = seenCounts(who);
-  const defend = who === 'c' && S.settings.level === 'strong' && S.riichi.p;
+  const defend = who === 'c' && oppLevel() === 'strong' && S.riichi.p;
   const out = [], cand = [];
   for (const k of new Set(h.map(t => t.k))) { c[k]--; cand.push({ k, s: shAll(c, open) }); c[k]++; }
   const minS = Math.min(...cand.map(x => x.s));
@@ -692,7 +742,7 @@ function evalDiscards(who) {
       for (const kk of KINDS) { const un = 4 - seen[kk]; if (un <= 0) continue; c[kk]++; if (shAll(c, open) < s) uke += un; c[kk]--; }
       c[k]++;
     }
-    const val = doraPts(k);
+    const val = who === 'p' && hideDora() ? (FIVES.includes(k) ? 1 : 0) : doraPts(k);
     let key = s * 10000 - uke * 20 + val * 30;
     if (defend && s >= 2) key += danger(k, seen) * 400;
     out.push({ k, s, uke, val, key });
@@ -872,7 +922,10 @@ function startHand() {
   const dead = S.wall.splice(0, 8);
   S.doraInd = [dead[0], dead[1]]; S.uraInd = [dead[2], dead[3]]; S.rinshan = dead.slice(4);
   S.doraKinds = S.doraInd.map(t => doraOf(t.k));
+  if (oppIs('saigo')) S.doraKinds.push(29);   // 西
+  if (oppIs('libai')) S.doraKinds.push(31);   // 白
   S.hands = { p: dealPlayer(S.skill), c: S.wall.splice(0, 13) };
+  if (oppIs('jeanne_ura')) dealOneShanten('c');
   S.melds = { p: [], c: [] }; S.river = { p: [], c: [] }; S.draws = { p: 0, c: 0 };
   S.riichi = { p: false, c: false }; S.drawn = { p: null, c: null }; S.opts = {};
   S.tenpaiSent = { p: false, c: false }; S.lateSent = false;
@@ -928,7 +981,7 @@ function receiveDraw(who, t, rinshan) {
 /* ---------- player ---------- */
 function drawOpts(who) {
   const h = S.hands[who], c = counts(h), open = S.melds[who].length, o = {};
-  o.tsumo = shAll(c, open) === -1;
+  o.tsumo = shAll(c, open) === -1 || !!libaiWild(who);
   if (!S.riichi[who]) {
     if (isClosed(who)) {
       o.riichiTiles = [];
@@ -1056,7 +1109,7 @@ function bestTileId(who) {
 /* ---------- CPU ---------- */
 function cpuOnDraw() {
   const h = S.hands.c, c = counts(h), open = S.melds.c.length;
-  if (shAll(c, open) === -1) return win('c', 'tsumo');
+  if (shAll(c, open) === -1 || libaiWild('c')) return win('c', 'tsumo');
   if (S.riichi.c) return discardTile('c', S.drawn.c);
   if (S.rinshan.length) {
     const bestS = evalDiscards('c')[0].s;
@@ -1067,7 +1120,11 @@ function cpuOnDraw() {
 }
 function cpuChooseAndDiscard() {
   if (S.ended) return;
-  const res = evalDiscards('c'), L = S.settings.level, r = Math.random();
+  const res = evalDiscards('c'), L = oppLevel(), r = Math.random();
+  if (oppSees() && !S.riichi.c) {
+    const ws = waitsOf('p'); const safe = res.filter(x => !ws.includes(x.k));
+    if (safe.length && safe.length < res.length) res.splice(0, res.length, ...safe);
+  }
   let pick = res[0];
   if (L === 'weak' && r < 0.3 && res.length > 1) pick = res[1 + ((Math.random() * Math.min(3, res.length - 1)) | 0)];
   else if (L === 'mid' && r < 0.1 && res.length > 1) pick = res[1];
@@ -1083,7 +1140,7 @@ function shouldPon(c, open, k) {
   for (let x = 0; x < 34; x++) if (c[x] > 0) { c[x]--; const s = shNormal(c, open + 1); if (s < best) best = s; c[x]++; }
   c[k] += 2;
   if (best >= cur) return false;
-  const L = S.settings.level;
+  const L = oppLevel();
   if (L === 'weak') return Math.random() < 0.6;
   if (L === 'strong') return open > 0 || cur >= 2 || doraPts(k) > 0;
   return true;
@@ -1110,6 +1167,8 @@ function scoreWin(who, tsumo) {
   if (five) items.push(['5ドラ', five]);
   let ura = 0;
   if (S.riichi[who]) { const uk = S.uraInd.map(t => doraOf(t.k)); ura = all.reduce((a, t) => a + uk.filter(d => d === t.k).length, 0); items.push(['裏ドラ', ura]); }
+  if (oppIs('pompadour') && S.melds[who].some(m => m.type === 'pon')) items.push(['ポンパドゥール（ポン）', 1]);
+  if (oppIs('genghis') && S.melds[who].some(m => m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan')) items.push(['ジンギスカン（カン）', 5]);
   const raw = items.reduce((a, x) => a + x[1], 0);
   return { items, raw, total: Math.min(20, raw), doraTotal: dora + five + ura };
 }
@@ -1121,6 +1180,9 @@ function win(who, type, t) {
   let winTile;
   if (type === 'ron') { S.river[opp] = S.river[opp].filter(x => x.id !== t.id); S.hands[who].push(t); winTile = t; }
   else winTile = S.hands[who].find(x => x.id === S.drawn[who]);
+  if (type === 'tsumo' && shAll(counts(S.hands[who]), S.melds[who].length) !== -1) {   // 李白の白
+    const ws = libaiWild(who); if (ws) { winTile.wild = 31; winTile.k = ws[(Math.random() * ws.length) | 0]; }
+  }
   const sc = scoreWin(who, type === 'tsumo');
   S.ptsShow = { p: S.chips.p, c: S.chips.c, pot: S.pot };   // 結果画面でカウントするまで表示は据え置き
   const pay = Math.min(sc.total * S.bet, S.chips[opp]);
@@ -1199,7 +1261,7 @@ function tileHTML(t, o) {
   const k = t.k, cls = ['tile', 'k' + k];
   if (k < 27) cls.push(['man', 'pin', 'sou'][(k / 9) | 0]);
   if (FIVES.includes(k)) cls.push('five');
-  if (S.doraKinds.includes(k)) cls.push('dora');
+  if (S.doraKinds.includes(k) && !hideDora()) cls.push('dora');
   if (o.sm) cls.push('sm');
   if (o.cls) cls.push(o.cls);
   return `<div class="${cls.join(' ')}"${o.hand ? ` data-hand="p" data-id="${t.id}"` : ''}>${face(k)}</div>`;
@@ -1295,11 +1357,11 @@ function render() {
     if (o.pon) acts += btn('pon', 'ポン');
     if (o.kan) acts += btn('mkan', 'カン');
     acts += btn('skip', o.ron ? '見逃し' : 'スキップ', 'ghost');
-  } else if (!S.ended) msg = S.turn === 'c' ? 'CPUの手番…' : '';
+  } else if (!S.ended) msg = S.turn === 'c' ? oppName() + 'の手番…' : '';
 
   const left = w => MAX_DRAWS - S.draws[w];
   const centerHTML = `
-        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${oppIs('saigo') ? '<span class="xdora">＋西</span>' : oppIs('libai') ? '<span class="xdora">＋白</span>' : ''}</div>
         <div class="info2">
           <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
           <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
@@ -1339,7 +1401,7 @@ function render() {
     const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
     <div class="pinfo">
-      <span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
+      <span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
     </div>
     <div class="handrow phand-c" style="--tw:${cu}px"><div class="hand opp">${cpuTiles}</div></div>
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
@@ -1375,13 +1437,13 @@ function render() {
   }
   board.innerHTML = `
     <div class="zone">
-      <div class="who"><span class="nm">CPU</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[S.settings.level]}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
+      <div class="who"><span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
     <div class="mid">
       <div class="rivers"><div class="river opp" data-wm="${wmOf('c')}">${riverHTML('c')}</div></div>
       <div class="center">
-        <div class="dorabox"><span class="cap">ドラ表示</span>${S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}</div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${oppIs('saigo') ? '<span class="xdora">＋西</span>' : oppIs('libai') ? '<span class="xdora">＋白</span>' : ''}</div>
         <div class="info2">
           <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
           <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
@@ -1427,7 +1489,7 @@ function renderPts() {
   bar.classList.toggle('show', S.handNo > 0);
   const src = S.ptsShow || { p: S.chips.p, c: S.chips.c, pot: S.pot };
   const p = Math.max(0, src.p), c = Math.max(0, src.c), k = Math.max(0, src.pot), tot = p + c + k || 1;
-  const seg = [['.sp', p, `あなた ${p}`], ['.sk', k, `供託 ${k}`], ['.sc', c, `CPU ${c}`]];
+  const seg = [['.sp', p, `あなた ${p}`], ['.sk', k, `供託 ${k}`], ['.sc', c, `${oppName()} ${c}`]];
   for (const [sel, v, label] of seg) {
     const el = bar.querySelector(sel), pct = v / tot * 100;
     el.style.flexBasis = pct + '%';
@@ -1678,12 +1740,27 @@ function cutin(text, who, tier, key) {
 
 /* ---------- キャラクター（後で画像を追加できるようにしておく） ----------
    img に画像のパスを入れると対戦カットインの丸枠に表示される（例: 'chars/player.png'） */
+// 対戦相手。画像は chars/<id>.png を置くと自動で表示される（無ければシルエット）
+const OPPONENTS = [
+  { id: 'jeanne', name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
+  { id: 'pompadour', name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
+  { id: 'genghis', name: 'ジンギスカン', abil: 'カンして和了ると＋5点（お互い）' },
+  { id: 'delacroix', name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
+  { id: 'saigo', name: '西郷隆盛', abil: '西がドラになる（お互い）' },
+  { id: 'libai', name: '李白', abil: '白がドラになる。リーチ後に白をツモると和了れる（お互い）' },
+  { id: 'rasputin', name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない', boss: 'ラスボス' },
+  { id: 'jeanne_ura', name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン', boss: '裏ボス' },
+];
+const opp = () => OPPONENTS.find(o => o.id === S.settings.opp) || OPPONENTS[0];
+const oppIs = id => S.settings.opp === id;
+const oppName = () => opp().name;
+const oppLevel = () => opp().boss ? 'strong' : S.settings.level;
 const CHARACTERS = {
   p: { name: 'あなた', title: 'PLAYER', img: '' },
-  c: { name: 'CPU', title: () => 'CPU ' + { weak: '弱', mid: '中', strong: '強' }[S.settings.level], img: '' },
+  c: { get name() { return oppName(); }, title: () => (opp().boss ? opp().boss + ' ・ ' : '') + '強さ ' + { weak: '弱', mid: '中', strong: '強' }[oppLevel()], get img() { return 'chars/' + opp().id + '.png'; } },
 };
 const SILHOUETTE = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="38" r="20" fill="rgba(246,226,160,.55)"/><path d="M12 100c2-24 18-36 38-36s36 12 38 36z" fill="rgba(246,226,160,.55)"/></svg>`;
-function charPortrait(who) { const c = CHARACTERS[who]; return c.img ? `<img src="${c.img}" alt="${c.name}">` : SILHOUETTE; }
+function charPortrait(who, id) { const src = id ? 'chars/' + id + '.png' : CHARACTERS[who].img; return SILHOUETTE + (src ? `<img src="${src}" alt="" onerror="this.remove()">` : ''); }
 function showVS(ms) {
   return new Promise(done => {
     const el = document.getElementById('vs'); if (!el) return done();
@@ -1692,7 +1769,8 @@ function showVS(ms) {
       <div class="side p"><div class="por">${charPortrait('p')}</div><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
       <div class="mark">VS</div>
       <div class="side c"><div class="por">${charPortrait('c')}</div><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
-      <div class="sub">${S.maxHands ? S.maxHands + '局戦' : '∞（飛ぶまで）'} ・ 持ち点 ${startChips()}</div>`;
+      <div class="sub">${S.maxHands ? S.maxHands + '局戦' : '∞（飛ぶまで）'} ・ 持ち点 ${startChips()}</div>
+      <div class="abil">${opp().abil}</div>`;
     el.className = 'show';
     let fin = false;
     const end = () => { if (fin) return; fin = true; el.classList.add('out'); setTimeout(() => { el.className = ''; el.innerHTML = ''; done(); }, 340); };
@@ -1718,7 +1796,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1745,14 +1823,26 @@ async function startGame() {
     act('start');
   } finally { startGame.busy = false; }
 }
-function showHandSelect() {
-  const H = [[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞', 'どちらかが飛ぶまで']];
-  showOverlay(`<div class="panel">
-    <h2>局数を選んでください</h2>
-    <p style="color:var(--muted)">持ち点 ${startChips()}</p>
-    <div class="handPick">${H.map(([v, l, sub]) => `<button class="btn ${S.maxHands === v ? '' : 'ghost'}" data-act="pickHands" data-v="${v}" aria-pressed="${S.maxHands === v}">${l}${sub ? `<small>${sub}</small>` : ''}</button>`).join('')}</div>
-    <div class="menuBtns">${btn('go', '対局開始 ▶')}</div>
+function showOppSelect() {
+  showOverlay(`<div class="panel wide">
+    <h2>対戦相手を選んでください</h2>
+    <div class="oppGrid">${OPPONENTS.map(o => `<button class="oppCard${o.boss ? ' boss' : ''}${S.settings.opp === o.id ? ' cur' : ''}" data-act="pickOpp" data-v="${o.id}">
+      <div class="por">${charPortrait('c', o.id)}</div>
+      <div class="tx"><b>${o.name}</b>${o.boss ? `<em>${o.boss}</em>` : ''}<small>${o.abil}</small></div></button>`).join('')}</div>
     <div class="row"><span></span>${btn('toTitle', '◀ 戻る', 'ghost sm')}</div>
+  </div>`);
+}
+function showOppPopup() {
+  const o = opp(), H = [[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞', '飛ぶまで']], L = [['weak', '弱'], ['mid', '中'], ['strong', '強']];
+  showOverlay(`<div class="panel oppPop">
+    <div class="head"><div class="por">${charPortrait('c', o.id)}</div><div><h2>${o.name}</h2>${o.boss ? `<em class="bossTag">${o.boss}</em>` : ''}<p>${o.abil}</p></div></div>
+    <h3>強さ</h3>
+    <div class="handPick c3">${o.boss ? `<button class="btn" disabled>強（固定）</button>` : L.map(([v, l]) => `<button class="btn ${S.settings.level === v ? '' : 'ghost'}" data-act="pickLevel" data-v="${v}">${l}</button>`).join('')}</div>
+    <h3>局数</h3>
+    <div class="handPick">${H.map(([v, l, sub]) => `<button class="btn ${S.maxHands === v ? '' : 'ghost'}" data-act="pickHands" data-v="${v}" aria-pressed="${S.maxHands === v}">${l}${sub ? `<small>${sub}</small>` : ''}</button>`).join('')}</div>
+    <p style="color:var(--muted);margin:6px 0 0">持ち点 ${startChips()}</p>
+    <div class="menuBtns">${btn('go', '対局開始 ▶')}</div>
+    <div class="row"><span></span>${btn('begin', '◀ 相手を選び直す', 'ghost sm')}</div>
   </div>`);
 }
 /* ---------- 遊び方ガイド ---------- */
@@ -1829,17 +1919,17 @@ function showResult(r) {
   let html = '';
   if (r.kind === 'win') {
     const who = r.who, h = S.hands[who].filter(t => t.id !== r.winTile.id).sort((a, b) => a.k - b.k);
-    html = `<h2 class="r-title ${who}">${who === 'p' ? 'あなた' : 'CPU'}の${r.type === 'tsumo' ? 'ツモ' : 'ロン'}和了</h2>
+    html = `<h2 class="r-title ${who}">${who === 'p' ? 'あなた' : oppName()}の${r.type === 'tsumo' ? 'ツモ' : 'ロン'}和了</h2>
       <div class="rwin" style="--n:${h.length + 1.6}">
         <div class="rw-hand">${h.map(t => tileHTML(t)).join('')}</div>
-        <div class="rw-win"><span>${r.type === 'tsumo' ? 'ツモ' : 'ロン'}</span>${tileHTML(r.winTile, { cls: 'hl' })}</div>
+        <div class="rw-win"><span>${r.type === 'tsumo' ? 'ツモ' : 'ロン'}</span>${tileHTML(r.winTile, { cls: 'hl' + (r.winTile.wild ? ' wild' : '') })}</div>
       </div>
       ${S.melds[who].length ? `<div class="rw-melds"><span>鳴き</span>${meldsHTML(who, false)}</div>` : ''}
       <table class="items">${r.sc.items.map(([n, v]) => `<tr><td>${n}</td><td>${v}点</td></tr>`).join('')}</table>
       <div class="total">${r.sc.total}点 → ${who === 'p' ? '+' : '−'}${r.pay}<small> チップ${r.sc.raw > 20 ? '（上限20点）' : ''}</small></div>${r.potWon ? `<p class="pot" style="font-weight:900;font-size:16px">＋供託 ${r.potWon} チップ</p>` : ''}`;
-    if (who === 'p') html += `<h3>CPUの手牌</h3><div class="rhand">${sortedHand('c').rest.concat(sortedHand('c').dt || []).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
+    if (who === 'p') html += `<h3>${oppName()}の手牌</h3><div class="rhand">${sortedHand('c').rest.concat(sortedHand('c').dt || []).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   } else {
-    html = `<h2>流局</h2><p>精算なし${S.pot ? `（供託 ${S.pot} は次の局へ持ち越し）` : ''}</p><h3>CPUの手牌</h3><div class="rhand">${S.hands.c.slice().sort((a, b) => a.k - b.k).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
+    html = `<h2>流局</h2><p>精算なし${S.pot ? `（供託 ${S.pot} は次の局へ持ち越し）` : ''}</p><h3>${oppName()}の手牌</h3><div class="rhand">${S.hands.c.slice().sort((a, b) => a.k - b.k).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   }
   if (S.riichi.p || S.riichi.c) html += `<h3>裏ドラ表示</h3><div class="rhand">${S.uraInd.map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   html += `<div class="row">${FEATURE_SKILLS ? `<span style="color:#c9a0ff;font-weight:900">ゲージ +${r.g} → ${S.gauge}</span>` : '<span></span>'}${btn('next', isOver() ? '結果へ ▶' : '次の局へ ▶')}</div>`;
@@ -1849,6 +1939,7 @@ function showResult(r) {
 }
 // 結果画面の手牌：幅に合わせて牌の大きさを決める（14枚でも1段に収める）
 function fitResultHand() {
+  if (!HAS_DOM) return;
   const el = document.querySelector('#overlay .rwin'); if (!el) return;
   const n = +getComputedStyle(el).getPropertyValue('--n') || 14.6;
   const w = el.clientWidth;   // 画面の拡大縮小前の幅（論理px）
@@ -1857,6 +1948,7 @@ function fitResultHand() {
 }
 /* 点数バーを1点ずつ動かす（テテテテ…） */
 function ptsCount() {
+  if (!HAS_DOM) { S.ptsShow = null; return; }
   clearInterval(ptsCount.iv); clearTimeout(ptsCount.to);
   const from = { ...S.ptsShow }, to = { p: S.chips.p, c: S.chips.c, pot: S.pot };
   const n = Math.max(Math.abs(to.p - from.p), Math.abs(to.c - from.c), Math.abs(to.pot - from.pot));
@@ -1884,8 +1976,8 @@ function showFinal() {
   const p = S.chips.p, c = S.chips.c, res = p > c ? 'WIN' : p < c ? 'LOSE' : 'DRAW';
   emit('game_end', { result: res.toLowerCase(), chips: { ...S.chips } });
   cutin(res, res === 'WIN' ? 'p' : 'c', 'big', 'game_' + res.toLowerCase());
-  showOverlay(`<div class="panel"><h2>${res === 'WIN' ? 'あなたの勝ち' : res === 'LOSE' ? 'CPUの勝ち' : '引き分け'}</h2>
-    <p style="font-size:18px">あなた <b style="color:var(--gold2)">${p}</b> 対 CPU <b style="color:#ffb0b0">${c}</b> チップ（${S.handNo}局）</p>
+  showOverlay(`<div class="panel"><h2>${res === 'WIN' ? 'あなたの勝ち' : res === 'LOSE' ? oppName() + 'の勝ち' : '引き分け'}</h2>
+    <p style="font-size:18px">あなた <b style="color:var(--gold2)">${p}</b> 対 ${oppName()} <b style="color:#ffb0b0">${c}</b> チップ（${S.handNo}局）</p>
     <div class="row"><span></span>${btn('restart', 'メインメニューへ ▶')}</div></div>`);
 }
 function resetGame() {
@@ -1900,7 +1992,9 @@ function resetGame() {
 function act(a, ds) {
   switch (a) {
     case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
-    case 'begin': showHandSelect(); break;
+    case 'begin': showOppSelect(); break;
+    case 'pickOpp': S.settings.opp = ds.v; saveSettings(); showOppPopup(); break;
+    case 'pickLevel': S.settings.level = ds.v; { const el = document.getElementById('setLevel'); if (el) el.value = ds.v; } saveSettings(); showOppPopup(); break;
     case 'settings': toggleMenu(true); break;
     case 'toTitle': showTitle(); break;
     case 'pickHands': S.maxHands = +ds.v; saveSettings(); document.querySelectorAll('[data-act=pickHands]').forEach(b => { const on = +b.dataset.v === S.maxHands; b.classList.toggle('ghost', !on); b.setAttribute('aria-pressed', on); }); break;
@@ -2030,6 +2124,7 @@ if (HAS_DOM) {
       if (typeof st.autoCall === 'boolean') S.settings.autoCall = st.autoCall;
       if (typeof st.autoWin === 'boolean') S.settings.autoWin = st.autoWin;
       if (typeof st.se === 'number') S.settings.se = st.se;
+      if (typeof st.opp === 'string') S.settings.opp = st.opp;
       if (typeof st.bgmOn === 'boolean') S.settings.bgmOn = st.bgmOn;
       if (typeof st.seOn === 'boolean') S.settings.seOn = st.seOn;
       if (['off', 'weak', 'mid', 'strong'].includes(st.inertia)) { S.settings.inertia = st.inertia; document.getElementById('setInertia').value = st.inertia; }
