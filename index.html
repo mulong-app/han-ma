@@ -214,6 +214,9 @@ table.items td:last-child{text-align:right;font-weight:900}
   background:radial-gradient(ellipse at center,#14281e,#020805)}
 #vs.show{display:flex;animation:vsFade .25s ease-out}
 #vs.out{animation:vsOut .35s ease-in forwards}
+ #vs .art{position:absolute;left:0;right:0;top:0;height:60%;background-size:cover;background-position:center 25%;
+  -webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent);animation:vsInR .55s cubic-bezier(.2,.9,.2,1) both}
+#stage:not(.portrait) #vs .art{left:30%;height:100%;-webkit-mask-image:linear-gradient(90deg,transparent,#000 30%);mask-image:linear-gradient(90deg,transparent,#000 30%)}
 #vs .band{position:absolute;left:-10%;right:-10%;height:46%;transform:skewY(-8deg)}
 #vs .band.p{bottom:2%;background:linear-gradient(90deg,rgba(36,103,196,.85),rgba(36,103,196,.15));animation:vsInL .45s cubic-bezier(.2,.9,.2,1) both}
 #vs .band.c{top:2%;background:linear-gradient(270deg,rgba(226,67,76,.85),rgba(226,67,76,.15));animation:vsInR .45s .12s cubic-bezier(.2,.9,.2,1) both}
@@ -224,12 +227,12 @@ table.items td:last-child{text-align:right;font-weight:900}
 #vs .por,.oppCard .por,.oppPop .por{position:relative}
 #vs .por img,.oppCard .por img,.oppPop .por img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #vs .por svg{width:86%;height:86%}
-#vs .nm{font:900 46px/1.1 'Zen Kaku Gothic New',sans-serif;color:#fff;text-shadow:0 3px 10px rgba(0,0,0,.7)}
+#vs .nm{font:900 46px/1.1 'Zen Kaku Gothic New',sans-serif;color:#fff;text-shadow:0 0 14px #000,0 0 6px #000,0 3px 10px rgba(0,0,0,.9)}
 #vs .nm small{display:block;font-size:20px;color:var(--gold2);letter-spacing:.1em}
 #vs .side.c .nm{text-align:right}
 #vs .mark{position:relative;font:900 120px/1 'Noto Serif JP',serif;color:#ffe14d;letter-spacing:-.04em;text-shadow:0 0 30px rgba(255,200,60,.8),0 6px 0 #7a5a16;animation:vsMark .5s .45s cubic-bezier(.2,1.6,.4,1) both}
 #vs .abil{position:absolute;top:calc(4% + 34px);left:6%;right:6%;text-align:center;font:700 18px/1.4 'Zen Kaku Gothic New',sans-serif;color:#fff;opacity:0;animation:vsFade .4s 1s both;text-shadow:0 2px 6px rgba(0,0,0,.8)}
-#vs .sub{position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
+#vs .sub{text-shadow:0 0 10px #000,0 0 4px #000;position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
 #stage:not(.portrait) #vs .side.p{bottom:16%;left:10%}#stage:not(.portrait) #vs .side.c{top:16%;right:10%}
 @keyframes vsFade{from{opacity:0}to{opacity:1}}
 @keyframes vsOut{to{opacity:0;transform:scale(1.04)}}
@@ -256,7 +259,9 @@ table.items td:last-child{text-align:right;font-weight:900}
 .oppCard .tx b{font-size:17px}
 .oppCard .tx em{font-style:normal;font-size:11px;font-weight:900;color:#ff9aa2;letter-spacing:.1em}
 .oppCard .tx small{font-size:12px;color:var(--muted);line-height:1.35}
-.oppPop .head{display:flex;align-items:center;gap:16px}
+.oppPop .artBanner{height:220px;margin:-22px -26px 0;border-radius:18px 18px 0 0;background-size:cover;background-position:center 22%;-webkit-mask-image:linear-gradient(180deg,#000 60%,transparent);mask-image:linear-gradient(180deg,#000 60%,transparent)}
+.portrait .oppPop .artBanner{height:300px}
+.oppPop .head{display:flex;align-items:center;gap:16px;margin-top:-50px;position:relative}
 .oppPop .head .por{flex:none;width:110px;height:110px;border-radius:50%;overflow:hidden;border:3px solid #f6e2a0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center}
 .oppPop .head h2{margin:0}
 .oppPop .head p{margin:6px 0 0;color:var(--muted)}
@@ -1740,7 +1745,7 @@ function cutin(text, who, tier, key) {
 
 /* ---------- キャラクター（後で画像を追加できるようにしておく） ----------
    img に画像のパスを入れると対戦カットインの丸枠に表示される（例: 'chars/player.png'） */
-// 対戦相手。画像は chars/<id>.png を置くと自動で表示される（無ければシルエット）
+// 対戦相手。顔画像 chars/<id>.jpg・全身 chars/<id>_full.jpg（無ければシルエット）
 const OPPONENTS = [
   { id: 'jeanne', name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
   { id: 'pompadour', name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
@@ -1757,15 +1762,15 @@ const oppName = () => opp().name;
 const oppLevel = () => opp().boss ? 'strong' : S.settings.level;
 const CHARACTERS = {
   p: { name: 'あなた', title: 'PLAYER', img: '' },
-  c: { get name() { return oppName(); }, title: () => (opp().boss ? opp().boss + ' ・ ' : '') + '強さ ' + { weak: '弱', mid: '中', strong: '強' }[oppLevel()], get img() { return 'chars/' + opp().id + '.png'; } },
+  c: { get name() { return oppName(); }, title: () => (opp().boss ? opp().boss + ' ・ ' : '') + '強さ ' + { weak: '弱', mid: '中', strong: '強' }[oppLevel()], get img() { return 'chars/' + opp().id + '.jpg'; } },
 };
 const SILHOUETTE = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="38" r="20" fill="rgba(246,226,160,.55)"/><path d="M12 100c2-24 18-36 38-36s36 12 38 36z" fill="rgba(246,226,160,.55)"/></svg>`;
-function charPortrait(who, id) { const src = id ? 'chars/' + id + '.png' : CHARACTERS[who].img; return SILHOUETTE + (src ? `<img src="${src}" alt="" onerror="this.remove()">` : ''); }
+function charPortrait(who, id) { const src = id ? 'chars/' + id + '.jpg' : CHARACTERS[who].img; return SILHOUETTE + (src ? `<img src="${src}" alt="" onerror="this.remove()">` : ''); }
 function showVS(ms) {
   return new Promise(done => {
     const el = document.getElementById('vs'); if (!el) return done();
     const ttl = w => { const t = CHARACTERS[w].title; return typeof t === 'function' ? t() : t; };
-    el.innerHTML = `<div class="band p"></div><div class="band c"></div>
+    el.innerHTML = `<div class="band p"></div><div class="band c"></div><div class="art" style="background-image:url('chars/${opp().id}_full.jpg')"></div>
       <div class="side p"><div class="por">${charPortrait('p')}</div><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
       <div class="mark">VS</div>
       <div class="side c"><div class="por">${charPortrait('c')}</div><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
@@ -1835,6 +1840,7 @@ function showOppSelect() {
 function showOppPopup() {
   const o = opp(), H = [[1, '1局'], [4, '4局'], [8, '8局'], [0, '∞', '飛ぶまで']], L = [['weak', '弱'], ['mid', '中'], ['strong', '強']];
   showOverlay(`<div class="panel oppPop">
+    <div class="artBanner" style="background-image:url('chars/${o.id}_full.jpg')"></div>
     <div class="head"><div class="por">${charPortrait('c', o.id)}</div><div><h2>${o.name}</h2>${o.boss ? `<em class="bossTag">${o.boss}</em>` : ''}<p>${o.abil}</p></div></div>
     <h3>強さ</h3>
     <div class="handPick c3">${o.boss ? `<button class="btn" disabled>強（固定）</button>` : L.map(([v, l]) => `<button class="btn ${S.settings.level === v ? '' : 'ghost'}" data-act="pickLevel" data-v="${v}">${l}</button>`).join('')}</div>
