@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>韓麻 HEADS-UP プロトタイプ</title>
+<title>韓麻パラダイス -History-</title>
+<meta name="apple-mobile-web-app-title" content="韓麻パラダイス">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@700;900&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap" rel="stylesheet">
@@ -268,6 +269,10 @@ table.items td:last-child{text-align:right;font-weight:900}
 @keyframes vsInR{from{transform:translateX(120%) skewY(-8deg);opacity:0}}
 @keyframes vsMark{from{transform:scale(3);opacity:0}}
 /* ---------- tap to start ---------- */
+.logo{display:flex;flex-direction:column;align-items:center;line-height:1.05;margin:4px 0 10px}
+.logo .l1{font:900 46px/1.1 'Noto Serif JP',serif;color:var(--gold2);letter-spacing:.06em;text-shadow:0 3px 0 #5a3f10,0 0 24px rgba(230,190,90,.35)}
+.logo .l2{font:700 22px/1.2 'Noto Serif JP',serif;color:#e8c9c9;letter-spacing:.4em;margin-top:6px}
+.logo .l1{white-space:nowrap}.portrait .logo .l1{font-size:40px}.portrait .logo .l2{font-size:20px;letter-spacing:.25em}
 .tapstart{padding:36px 26px;animation:tsPulse 1.6s ease-in-out infinite alternate}
 .tapstart .brand2{font:900 72px/1 'Noto Serif JP',serif;color:var(--gold2);letter-spacing:.2em}
 @keyframes tsPulse{from{box-shadow:0 0 0 rgba(216,180,90,0)}to{box-shadow:0 0 40px rgba(216,180,90,.35)}}
@@ -654,7 +659,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 <script>
 'use strict';
 /* =========================================================
-   韓麻 HEADS-UP prototype
+   韓麻パラダイス -History-
    tile kind index: 0-8 萬 / 9-17 筒 / 18-26 索 / 27-33 東南西北白發中
    ========================================================= */
 const HAS_DOM = typeof document !== 'undefined';
@@ -1881,7 +1886,7 @@ function settingsHTML() {
 function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp, me: S.settings.me, abil: S.settings.abil })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
-    <h2>韓麻 HEADS-UP</h2>
+    <div class="logo"><span class="l1">韓麻パラダイス</span><span class="l2">-History-</span></div>
     <p>パラダイスシティの韓国式麻雀「韓麻」をもとにした、CPUと1対1のスピード麻雀です。役はなく、ドラ・ロン・ツモ・リーチの点を足すだけ。</p>
     <div class="menuBtns">
       ${btn('begin', '対局開始 ▶')}
@@ -1935,7 +1940,7 @@ function showOppPopup() {
 function guidePages() {
   const por = S.portrait;
   return [
-    { t: '韓麻 HEADS-UP へようこそ', b: `
+    { t: '韓麻パラダイス -History- へようこそ', b: `
       <p>韓国・パラダイスシティのカジノで遊ばれている韓国式麻雀「韓麻（ハンマ）」がベースです。</p>
       <p>CPUと1対1で、<b>1局ごとにチップを奪い合う</b>スピード麻雀。普通の麻雀を知っていれば、次のページの「違い」だけ覚えればすぐ遊べます。</p>` },
     { t: '普通の麻雀との違い', b: `<ul class="gl">
@@ -2355,7 +2360,7 @@ if (HAS_DOM) {
   const go = () => {
     if (location.protocol === 'file:' || !(window.AudioContext || window.webkitAudioContext)) return go2();
     showOverlay(`<div class="panel tapstart" data-act="tapStart" style="text-align:center;cursor:pointer">
-      <div class="brand2">韓麻</div><p style="font-size:22px;font-weight:900;margin:14px 0 4px">タップしてはじめる</p>
+      <img src="icons/icon-192.png" alt="" style="width:120px;height:120px;border-radius:26px;box-shadow:0 8px 24px rgba(0,0,0,.5)" onerror="this.remove()"><div class="logo" style="margin-top:14px"><span class="l1">韓麻パラダイス</span><span class="l2">-History-</span></div><p style="font-size:22px;font-weight:900;margin:14px 0 4px">タップしてはじめる</p>
       <p style="color:var(--muted);margin:0">BGM・効果音が流れます（右上のボタンでON/OFF）</p></div>`);
   };
   syncSndBtns();
