@@ -306,10 +306,13 @@ table.items td:last-child{text-align:right;font-weight:900}
 .who .nm,.pbox .nm,.nm{white-space:nowrap;flex:none}
 .abilTag{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .portrait .abilTag{font-size:15px}
+.pbar1 .abilTag{display:none}
 .handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
 .handPick .btn small{display:block;font-size:10px;font-weight:700;opacity:.8;margin-top:3px;white-space:nowrap}
 #car.wait .carup{opacity:0}
 #car.wait .ct.cur .tile{box-shadow:none}
+.hand.mine .tile.danger{box-shadow:0 0 0 3px #ff4d5e,0 4px 0 #2d6a4d}
+.hand.mine .tile.danger::after{content:'危';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:900;color:#ff6b78}
 /* ---------- waits ---------- */
 .wslot{display:contents}
 .waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
@@ -604,6 +607,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
         <select id="setLayout"><option value="auto" selected>自動（画面の向き）</option><option value="land">PC（横）</option><option value="port">スマホ（縦）</option></select></label>
       <label class="set">ロン／ツモの点数
         <select id="setScoring"><option value="6/4" selected>ロン6／ツモ4</option><option value="7/4">ロン7／ツモ4</option><option value="8/4">ロン8／ツモ4</option><option value="6/2">ロン6／ツモ2（元の韓麻）</option></select></label>
+      <label class="set">キャラの特殊能力 <input type="checkbox" id="setAbil" checked></label>
       <label class="set">ツモ回数（1局・各自）
         <select id="setDraws"><option value="18">18回</option><option value="20" selected>20回</option><option value="22">22回</option><option value="24">24回</option></select></label>
       <label class="set">時間切れ
@@ -681,7 +685,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', opp: 'jeanne', me: '', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', opp: 'jeanne', me: '', abil: true, bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -700,14 +704,18 @@ function doraOf(k) {
   if (k <= 30) return k === 30 ? 27 : k + 1;
   return k === 33 ? 31 : k + 1;
 }
-const hideDora = () => oppIs('delacroix') && !S.ended;   // ドラクロワ：対局中はあなたにドラが見えない
+// キャラ能力：選んだキャラの側に効く（同キャラなら両方）。設定でまとめてON/OFF
+const charOf = who => who === 'c' ? S.settings.opp : S.settings.me;
+const has = (who, id) => S.settings.abil !== false && charOf(who) === id;
+const doraBlind = who => has(other(who), 'delacroix') && !S.ended;   // ドラクロワの相手はドラが見えない
+const hideDora = () => doraBlind('p');
 // ボスの調整値（uraShanten：裏ジャンヌの配牌シャンテン数、uraBoost：有効牌を引く確率の上乗せ）
 // 仮想プレイヤー（守りあり）との8局勝負で、プレイヤー勝率 ラスプーチン≈10%・裏ジャンヌ≈5% になるよう調整
 const BOSS_TUNE = { jeanne_ura: { shanten: 1, boost: 0.05 }, rasputin: { shanten: null, boost: 0.10 } };
-const bossTune = () => BOSS_TUNE[S.settings.opp] || null;
+const bossTune = who => S.settings.abil !== false && BOSS_TUNE[charOf(who)] || null;
 // 裏ジャンヌ：配牌を山との入れ替えでイーシャンテンにする
 function dealOneShanten(who) {
-  const h = S.hands[who], w = S.wall, T = bossTune().shanten;
+  const h = S.hands[who], w = S.wall, T = bossTune(who).shanten;
   for (let it = 0; it < 4000; it++) {
     const s0 = shAll(counts(h), 0); if (s0 === T) return;
     const i = (Math.random() * h.length) | 0, j = (Math.random() * w.length) | 0;
@@ -718,16 +726,24 @@ function dealOneShanten(who) {
 }
 // 李白：リーチ中に白をツモったら、待ち牌のどれかとして和了れる
 function libaiWild(who) {
-  if (who !== 'c' || !oppIs('libai') || !S.riichi[who]) return null;   // 李白だけ
+  if (!has(who, 'libai') || !S.riichi[who]) return null;   // 李白だけ
   const d = S.hands[who].find(t => t.id === S.drawn[who]); if (!d || d.k !== 31) return null;
   const c = counts(S.hands[who]), open = S.melds[who].length; c[31]--;
   const ws = []; for (const k of KINDS) { c[k]++; if (shAll(c, open) === -1) ws.push(k); c[k]--; }
   return ws.length ? ws : null;
 }
 // ラスプーチン・裏ジャンヌ：あなたの待ちが見えている（リーチ中以外は当たり牌を切らない）
-const oppSees = () => oppIs('rasputin') || oppIs('jeanne_ura');
+// 自分がボスキャラのとき：相手の当たり牌に警告
+function dangerKinds() { if (S.ended || !S.hands.c.length) return []; const k = S.hands.c.length % 3 === 1 ? waitsOf('c') : []; return k; }
+const sees = who => has(who, 'rasputin') || has(who, 'jeanne_ura');
+const oppSees = () => sees('c');
 // キャラ専用ドラ（相手だけ）：西郷＝西が2点、李白＝白が1点
-function extraDora(k, who) { if (who !== 'c') return 0; if (oppIs('saigo') && k === 29) return 2; if (oppIs('libai') && k === 31) return 1; return 0; }
+function xdoraHTML() {
+  const lab = w => has(w, 'saigo') ? '西×2' : has(w, 'libai') ? '白' : '';
+  const a = lab('p'), b = lab('c');
+  return (a ? `<span class="xdora">自分＋${a}</span>` : '') + (b ? `<span class="xdora">相手＋${b}</span>` : '');
+}
+function extraDora(k, who) { if (!who) return 0; if (has(who, 'saigo') && k === 29) return 2; if (has(who, 'libai') && k === 31) return 1; return 0; }
 function doraPts(k, who) { let n = 0; for (const d of S.doraKinds) if (d === k) n++; if (FIVES.includes(k)) n++; return n + extraDora(k, who); }
 function later(fn, ms, allowEnded) { const tok = S.token; const run = () => { if (tok !== S.token) return; if (S.paused) return setTimeout(run, 150); if (S.ended && !allowEnded) return; fn(); }; setTimeout(run, ms); }
 function isClosed(who) { return S.melds[who].every(m => m.type === 'ankan'); }
@@ -786,7 +802,7 @@ function evalDiscards(who) {
       for (const kk of KINDS) { const un = 4 - seen[kk]; if (un <= 0) continue; c[kk]++; if (shAll(c, open) < s) uke += un; c[kk]--; }
       c[k]++;
     }
-    const val = who === 'p' && hideDora() ? (FIVES.includes(k) ? 1 : 0) : doraPts(k, who);
+    const val = doraBlind(who) ? (FIVES.includes(k) ? 1 : 0) + extraDora(k, who) : doraPts(k, who);
     let key = s * 10000 - uke * 20 + val * 30;
     if (defend && s >= 2) key += danger(k, seen) * 400;
     out.push({ k, s, uke, val, key });
@@ -967,7 +983,7 @@ function startHand() {
   S.doraInd = [dead[0], dead[1]]; S.uraInd = [dead[2], dead[3]]; S.rinshan = dead.slice(4);
   S.doraKinds = S.doraInd.map(t => doraOf(t.k));
   S.hands = { p: dealPlayer(S.skill), c: S.wall.splice(0, 13) };
-  if (bossTune() && bossTune().shanten != null) dealOneShanten('c');
+  for (const w of ['p', 'c']) if (bossTune(w) && bossTune(w).shanten != null) dealOneShanten(w);
   S.melds = { p: [], c: [] }; S.river = { p: [], c: [] }; S.draws = { p: 0, c: 0 };
   S.riichi = { p: false, c: false }; S.drawn = { p: null, c: null }; S.opts = {};
   S.tenpaiSent = { p: false, c: false }; S.lateSent = false;
@@ -983,8 +999,8 @@ function startHand() {
 /* ---------- draws ---------- */
 function drawFor(who) {
   const w = S.wall; if (!w.length) return null;
-  if (who === 'c' && bossTune() && Math.random() < bossTune().boost) {   // ボス：手が進む牌を引きやすい
-    const c = counts(S.hands.c), open = S.melds.c.length, s0 = shAll(c, open), good = [];
+  if (bossTune(who) && Math.random() < bossTune(who).boost) {   // ボス：手が進む牌を引きやすい
+    const c = counts(S.hands[who]), open = S.melds[who].length, s0 = shAll(c, open), good = [];
     w.slice(0, 40).forEach((t, i) => { c[t.k]++; if (shAll(c, open) < s0) good.push(i); c[t.k]--; });
     if (good.length) return w.splice(good[(Math.random() * good.length) | 0], 1)[0];
   }
@@ -1214,11 +1230,11 @@ function scoreWin(who, tsumo) {
   if (five) items.push(['5ドラ', five]);
   let ura = 0;
   if (S.riichi[who]) { const uk = S.uraInd.map(t => doraOf(t.k)); ura = all.reduce((a, t) => a + uk.filter(d => d === t.k).length, 0); items.push(['裏ドラ', ura]); }
-  if (who === 'c') {   // キャラの能力（相手だけ）
-    const xd = all.reduce((a, t) => a + extraDora(t.k, 'c'), 0);
-    if (xd) items.push([oppIs('saigo') ? '西郷（西ドラ×2）' : '李白（白ドラ）', xd]);
-    if (oppIs('pompadour') && S.melds.c.some(m => m.type === 'pon')) items.push(['ポンパドゥール（ポン）', 1]);
-    if (oppIs('genghis') && S.melds.c.some(m => m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan')) items.push(['ジンギスカン（カン）', 5]);
+  {   // キャラの能力（和了った側のキャラ）
+    const xd = all.reduce((a, t) => a + extraDora(t.k, who), 0);
+    if (xd) items.push([has(who, 'saigo') ? '西郷（西ドラ×2）' : '李白（白ドラ）', xd]);
+    if (has(who, 'pompadour') && S.melds[who].some(m => m.type === 'pon')) items.push(['ポンパドゥール（ポン）', 1]);
+    if (has(who, 'genghis') && S.melds[who].some(m => m.type === 'ankan' || m.type === 'minkan' || m.type === 'kakan')) items.push(['ジンギスカン（カン）', 8]);
   }
   const raw = items.reduce((a, x) => a + x[1], 0);
   return { items, raw, total: Math.min(20, raw), doraTotal: dora + five + ura };
@@ -1352,8 +1368,9 @@ function render() {
 
   /* CPU */
   const ch = sortedHand('c');
-  const cpuTiles = S.hands.c.filter(t => t.id !== S.drawn.c).map(t => S.reveal.has(t.id) ? tileHTML(t, { cls: 'peek' }) : tileHTML(t, { back: true })).join('')
-    + '<div class="gap"></div>' + (ch.dt ? (S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '<div class="tile back ghost"></div>');
+  const see = sees('p') && !S.ended;
+  const cpuTiles = S.hands.c.filter(t => t.id !== S.drawn.c).map(t => see || S.reveal.has(t.id) ? tileHTML(t, { cls: 'peek' }) : tileHTML(t, { back: true })).join('')
+    + '<div class="gap"></div>' + (ch.dt ? (see || S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '<div class="tile back ghost"></div>');
 
   /* assist */
   let assist = '', rec = null;
@@ -1381,6 +1398,7 @@ function render() {
       if (!mh.dt || mh.dt.k !== rec || t === mh.dt) { cls += ' rec'; recUsed = true; }
     }
     if (S.portrait && canSelect() && t.id === S.sel) cls += ' sel';
+    if (sees('p') && !S.riichi.c && dangerKinds().includes(t.k)) cls += ' danger';
     return tileHTML(t, { hand: true, cls });
   };
   const myTiles = mh.rest.map(mine).join('') + '<div class="gap"></div>' + (mh.dt ? mine(mh.dt) : '<div class="tile ghost"></div>');
@@ -1412,7 +1430,7 @@ function render() {
 
   const left = w => MAX_DRAWS - S.draws[w];
   const centerHTML = `
-        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${oppIs('saigo') ? '<span class="xdora" title="相手だけ">相手＋西×2</span>' : oppIs('libai') ? '<span class="xdora" title="相手だけ">相手＋白</span>' : ''}</div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${xdoraHTML()}</div>
         <div class="info2">
           <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
           <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
@@ -1452,7 +1470,7 @@ function render() {
     const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
     <div class="pinfo">
-      ${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
+      ${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${S.settings.abil === false ? '能力OFF' : opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
     </div>
     <div class="handrow phand-c" style="--tw:${cu}px"><div class="hand opp">${cpuTiles}</div></div>
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
@@ -1478,7 +1496,7 @@ function render() {
       <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
     </div>
     <div class="pbar">
-      <div class="pbar1">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
+      <div class="pbar1">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${me() && S.settings.abil !== false && me().id !== 'jeanne' ? `<span class="abilTag">${me().abil}</span>` : ''}${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
     </div>
     <div class="pspace bottom"></div>`;
     if (car.dragging || car.mode) { car.track = null; applyCar(); highlightHand(); }   // 操作中は位置を保つ（相手の手番中の再描画で止めない）
@@ -1488,13 +1506,13 @@ function render() {
   }
   board.innerHTML = `
     <div class="zone">
-      <div class="who">${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
+      <div class="who">${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${S.settings.abil === false ? '能力OFF' : opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
     <div class="mid">
       <div class="rivers"><div class="river opp" data-wm="${wmOf('c')}">${riverHTML('c')}</div></div>
       <div class="center">
-        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${oppIs('saigo') ? '<span class="xdora" title="相手だけ">相手＋西×2</span>' : oppIs('libai') ? '<span class="xdora" title="相手だけ">相手＋白</span>' : ''}</div>
+        <div class="dorabox"><span class="cap">ドラ表示</span>${hideDora() ? '<div class="tile sm blackout"></div><div class="tile sm blackout"></div>' : S.doraInd.map(t => tileHTML(t, { sm: true, cls: 'nolabel' })).join('')}${xdoraHTML()}</div>
         <div class="info2">
           <div class="st"><span>局</span><b>${S.handNo}<small>/${HANDS_LABEL(S.maxHands)}</small></b></div>
           <div class="st${left('p') + left('c') <= 10 ? ' low' : ''}"><span>残り山</span><b>${Math.max(0, left('p') + left('c'))}</b></div>
@@ -1503,7 +1521,7 @@ function render() {
       <div class="rivers"><div class="river" data-wm="${wmOf('p')}">${riverHTML('p')}</div></div>
     </div>
     <div class="zone">
-      <div class="who">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
+      <div class="who">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${me() && S.settings.abil !== false && me().id !== 'jeanne' ? `<span class="abilTag">${me().abil}</span>` : ''}${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
       <div class="handrow"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div class="actions"><span class="msg">${msg}</span>${acts}</div>
@@ -1804,12 +1822,12 @@ function cutin(text, who, tier, key) {
 const OPPONENTS = [
   { id: 'jeanne', short: 'ジャンヌ', fx: 0.66, fy: 0.32, name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
   { id: 'pompadour', short: 'ポンパドゥール', fx: 0.58, fy: 0.3, name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点' },
-  { id: 'genghis', short: 'ジンギスカン', fx: 0.54, fy: 0.33, name: 'ジンギスカン', abil: 'カンして和了ると＋5点' },
-  { id: 'delacroix', short: 'ドラクロワ', fx: 0.72, fy: 0.33, name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
+  { id: 'genghis', short: 'ジンギスカン', fx: 0.54, fy: 0.33, name: 'ジンギスカン', abil: 'カンして和了ると＋8点' },
+  { id: 'delacroix', short: 'ドラクロワ', fx: 0.72, fy: 0.33, name: 'ドラクロワ', abil: '相手にドラが見えなくなる（5は見える）' },
   { id: 'saigo', short: '西郷', fx: 0.61, fy: 0.3, name: '西郷隆盛', abil: '西が自分だけのドラ（1枚2点）' },
   { id: 'libai', short: '李白', fx: 0.68, fy: 0.24, name: '李白', abil: '白が自分だけのドラ。リーチ後に白をツモると和了れる' },
-  { id: 'rasputin', short: 'ラスプーチン', fx: 0.49, fy: 0.35, name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない。ツモも強い', boss: 'ラスボス' },
-  { id: 'jeanne_ura', short: '裏ジャンヌ', fx: 0.62, fy: 0.33, name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン。ツモも強い', boss: '裏ボス' },
+  { id: 'rasputin', short: 'ラスプーチン', fx: 0.49, fy: 0.35, name: 'ラスプーチン', abil: '相手の手牌が見える。リーチ中以外は振り込まない。ツモも強い', boss: 'ラスボス' },
+  { id: 'jeanne_ura', short: '裏ジャンヌ', fx: 0.62, fy: 0.33, name: 'ジャンヌ・ダルク（裏）', abil: '相手の手牌が見える＋配牌が常にイーシャンテン。ツモも強い', boss: '裏ボス' },
 ];
 const opp = () => OPPONENTS.find(o => o.id === S.settings.opp) || OPPONENTS[0];
 const oppIs = id => S.settings.opp === id;
@@ -1833,7 +1851,7 @@ function showVS(ms) {
       <div class="mark">VS</div>
       <div class="side c"><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
       <div class="sub">${S.maxHands ? S.maxHands + '局戦' : '∞（飛ぶまで）'} ・ 持ち点 ${startChips()}</div>
-      <div class="abil">${opp().abil}</div>`;
+      <div class="abil">${S.settings.abil === false ? '特殊能力：OFF' : (me() && me().id !== 'jeanne' ? `あなた：${me().abil}<br>` : '') + `${oppName()}：${opp().abil}`}</div>`;
     el.className = 'show';
     let fin = false;
     const end = () => { if (fin) return; fin = true; el.classList.add('out'); setTimeout(() => { el.className = ''; el.innerHTML = ''; done(); }, 340); };
@@ -1859,7 +1877,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp, me: S.settings.me })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp, me: S.settings.me, abil: S.settings.abil })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -2163,6 +2181,7 @@ if (HAS_DOM) {
   document.getElementById('setHandTap').addEventListener('change', e => { S.settings.handTap = e.target.checked; saveSettings(); });
   document.getElementById('setScoring').addEventListener('change', e => { S.settings.scoring = e.target.value; saveSettings(); });
   document.getElementById('setTimeout').addEventListener('change', e => { S.settings.timeout = e.target.value; });
+  document.getElementById('setAbil').addEventListener('change', e => { S.settings.abil = e.target.checked; saveSettings(); render(); });
   document.getElementById('setDraws').addEventListener('change', e => { S.settings.draws = +e.target.value; saveSettings(); if (S.ended) MAX_DRAWS = S.settings.draws; render(); });
   const seEl = document.getElementById('setSe'), bgEl = document.getElementById('setBgm');
   seEl.value = S.settings.se; bgEl.value = S.settings.bgm;
@@ -2196,6 +2215,7 @@ if (HAS_DOM) {
       if (typeof st.se === 'number') S.settings.se = st.se;
       if (typeof st.opp === 'string') S.settings.opp = st.opp;
       if (typeof st.me === 'string') S.settings.me = st.me;
+      if (typeof st.abil === 'boolean') { S.settings.abil = st.abil; document.getElementById('setAbil').checked = st.abil; }
       if (typeof st.bgmOn === 'boolean') S.settings.bgmOn = st.bgmOn;
       if (typeof st.seOn === 'boolean') S.settings.seOn = st.seOn;
       if (['off', 'weak', 'mid', 'strong'].includes(st.inertia)) { S.settings.inertia = st.inertia; document.getElementById('setInertia').value = st.inertia; }
