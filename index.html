@@ -165,6 +165,20 @@ table.items td:last-child{text-align:right;font-weight:900}
 
 #cutin{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;pointer-events:none;z-index:15;opacity:0}
 #cutin.show{animation:cut 1s ease-out forwards}
+#cutin.art.show{animation:cutArt 1.35s ease-out forwards}
+#cutin.art.t-big.show,#cutin.art.t-kokushi.show{animation-duration:1.7s}
+#cutin .strip{position:absolute;left:-8%;right:-8%;top:50%;height:46%;transform:translateY(-50%) skewY(-6deg);overflow:hidden;
+  border-top:4px solid #f6e2a0;border-bottom:4px solid #f6e2a0;box-shadow:0 0 40px rgba(0,0,0,.8);background:#300;animation:stripIn .35s cubic-bezier(.2,.9,.2,1) both}
+#cutin .strip .pic{position:absolute;inset:-12% 0;background-size:cover;transform:skewY(6deg) scale(1.08);animation:picPan 1.6s linear both}
+#cutin .strip::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(120,10,20,.55),transparent 45%,transparent 70%,rgba(0,0,0,.35))}
+#cutin.art .txt{position:relative;z-index:2;animation:txtPop .4s .12s cubic-bezier(.2,1.5,.4,1) both}
+#cutin.art .who{position:absolute;z-index:2;left:6%;top:calc(27% - 6px);font:900 26px/1 'Zen Kaku Gothic New',sans-serif;color:#fff;letter-spacing:.08em;text-shadow:0 0 10px #000,0 0 4px #000}
+.portrait #cutin.art .strip{height:34%}
+.portrait #cutin.art .who{top:calc(33% - 10px);font-size:30px}
+@keyframes cutArt{0%{opacity:0}6%{opacity:1}82%{opacity:1}100%{opacity:0}}
+@keyframes stripIn{from{transform:translateY(-50%) skewY(-6deg) translateX(110%)}}
+@keyframes picPan{from{transform:skewY(6deg) scale(1.08) translateX(3%)}to{transform:skewY(6deg) scale(1.08) translateX(-3%)}}
+@keyframes txtPop{from{transform:scale(2.2);opacity:0}}
 @keyframes cut{0%{opacity:0;transform:scale(1.6)}12%{opacity:1;transform:scale(1)}75%{opacity:1}100%{opacity:0;transform:scale(.96)}}
 #cutin .slot{width:min(360px,70%);aspect-ratio:16/7;border:2px dashed rgba(246,226,160,.6);border-radius:12px;background:rgba(0,0,0,.55);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font-size:11px;letter-spacing:.2em}
@@ -233,6 +247,9 @@ table.items td:last-child{text-align:right;font-weight:900}
 #vs .mark{position:relative;font:900 120px/1 'Noto Serif JP',serif;color:#ffe14d;letter-spacing:-.04em;text-shadow:0 0 30px rgba(255,200,60,.8),0 6px 0 #7a5a16;animation:vsMark .5s .45s cubic-bezier(.2,1.6,.4,1) both}
 #vs .abil{position:absolute;top:calc(4% + 34px);left:6%;right:6%;text-align:center;font:700 18px/1.4 'Zen Kaku Gothic New',sans-serif;color:#fff;opacity:0;animation:vsFade .4s 1s both;text-shadow:0 2px 6px rgba(0,0,0,.8)}
 #vs .sub{text-shadow:0 0 10px #000,0 0 4px #000;position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
+.portrait #vs .side.c{top:auto;bottom:47%;right:6%}
+#vs .sub,#vs .abil{z-index:3}
+#vs .side{z-index:3}
 #stage:not(.portrait) #vs .side.p{bottom:16%;left:10%}#stage:not(.portrait) #vs .side.c{top:16%;right:10%}
 @keyframes vsFade{from{opacity:0}to{opacity:1}}
 @keyframes vsOut{to{opacity:0;transform:scale(1.04)}}
@@ -272,7 +289,7 @@ table.items td:last-child{text-align:right;font-weight:900}
 .xdora{align-self:center;margin-left:6px;font-weight:900;color:var(--gold2);font-size:20px}
 .portrait .xdora{font-size:26px}
 .tile.wild::before{content:'白';position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;background:#fff;color:#333;border-radius:6px;padding:0 5px;box-shadow:0 1px 3px rgba(0,0,0,.5);z-index:2}
-.who .nm,.pbox .nm{white-space:nowrap}
+.who .nm,.pbox .nm,.nm{white-space:nowrap;flex:none}
 .abilTag{font-size:12px;color:var(--muted);margin-left:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .portrait .abilTag{font-size:15px}
 .handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
@@ -1199,7 +1216,7 @@ function win(who, type, t) {
   emit('win', { who, method: type, total: sc.total, bet: S.bet, chips: pay, tier, items: sc.items, hand: S.hands[who].map(x => tileName(x.k)), skill: S.skill });
   S.phase = 'result'; render();
   cutin(sc.kokushi ? '国士無双' : type === 'tsumo' ? 'ツモ' : 'ロン', who, tier, 'win_' + who + '_' + tier);
-  later(() => showResult({ kind: 'win', who, type, sc, pay, g, winTile, potWon }), 1050, true);
+  later(() => showResult({ kind: 'win', who, type, sc, pay, g, winTile, potWon }), who === 'c' ? (sc.raw >= 10 || sc.kokushi ? 1650 : 1350) : 1050, true);
 }
 function ryukyoku() {
   if (S.ended) return;
@@ -1739,7 +1756,11 @@ function cutin(text, who, tier, key) {
   else if (k === 'ryukyoku') haptic('draw');
   const el = document.getElementById('cutin');
   el.className = (who === 'p' ? 'pl' : who === 'c' ? 'cp' : 'nt') + (tier ? ' t-' + tier : '');
-  el.innerHTML = `<div class="txt">${text}</div>`;
+  if (who === 'c' && !k.startsWith('game_')) {   // 相手の発声・和了：キャラクターの絵を帯で出す
+    const o = opp();
+    el.classList.add('art');
+    el.innerHTML = `<div class="strip"><div class="pic" style="background-image:url('chars/${o.id}_full.jpg');background-position:${o.fx * 100}% ${o.fy * 100}%"></div></div><div class="who">${o.name}</div><div class="txt">${text}</div>`;
+  } else el.innerHTML = `<div class="txt">${text}</div>`;
   void el.offsetWidth; el.classList.add('show');
 }
 
@@ -1747,14 +1768,14 @@ function cutin(text, who, tier, key) {
    img に画像のパスを入れると対戦カットインの丸枠に表示される（例: 'chars/player.png'） */
 // 対戦相手。顔画像 chars/<id>.jpg・全身 chars/<id>_full.jpg（無ければシルエット）
 const OPPONENTS = [
-  { id: 'jeanne', name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
-  { id: 'pompadour', name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
-  { id: 'genghis', name: 'ジンギスカン', abil: 'カンして和了ると＋5点（お互い）' },
-  { id: 'delacroix', name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
-  { id: 'saigo', name: '西郷隆盛', abil: '西がドラになる（お互い）' },
-  { id: 'libai', name: '李白', abil: '白がドラになる。リーチ後に白をツモると和了れる（お互い）' },
-  { id: 'rasputin', name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない', boss: 'ラスボス' },
-  { id: 'jeanne_ura', name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン', boss: '裏ボス' },
+  { id: 'jeanne', fx: 0.66, fy: 0.32, name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
+  { id: 'pompadour', fx: 0.57, fy: 0.28, name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
+  { id: 'genghis', fx: 0.54, fy: 0.33, name: 'ジンギスカン', abil: 'カンして和了ると＋5点（お互い）' },
+  { id: 'delacroix', fx: 0.72, fy: 0.33, name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
+  { id: 'saigo', fx: 0.61, fy: 0.3, name: '西郷隆盛', abil: '西がドラになる（お互い）' },
+  { id: 'libai', fx: 0.68, fy: 0.24, name: '李白', abil: '白がドラになる。リーチ後に白をツモると和了れる（お互い）' },
+  { id: 'rasputin', fx: 0.49, fy: 0.35, name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない', boss: 'ラスボス' },
+  { id: 'jeanne_ura', fx: 0.69, fy: 0.33, name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン', boss: '裏ボス' },
 ];
 const opp = () => OPPONENTS.find(o => o.id === S.settings.opp) || OPPONENTS[0];
 const oppIs = id => S.settings.opp === id;
@@ -1771,9 +1792,9 @@ function showVS(ms) {
     const el = document.getElementById('vs'); if (!el) return done();
     const ttl = w => { const t = CHARACTERS[w].title; return typeof t === 'function' ? t() : t; };
     el.innerHTML = `<div class="band p"></div><div class="band c"></div><div class="art" style="background-image:url('chars/${opp().id}_full.jpg')"></div>
-      <div class="side p"><div class="por">${charPortrait('p')}</div><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
+      <div class="side p"><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
       <div class="mark">VS</div>
-      <div class="side c"><div class="por">${charPortrait('c')}</div><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
+      <div class="side c"><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
       <div class="sub">${S.maxHands ? S.maxHands + '局戦' : '∞（飛ぶまで）'} ・ 持ち点 ${startChips()}</div>
       <div class="abil">${opp().abil}</div>`;
     el.className = 'show';
