@@ -1846,6 +1846,7 @@ async function startGame() {
     clearTimeout(tip);
     S.chips = { p: startChips(), c: startChips() }; S.pot = 0; S.handNo = 0; S.gauge = 0; S.bet = 1; S.pendingSkill = null; S.skill = null;
     S.inGame = true; hideOverlay();
+    for (const t of ['win', 'lose']) { const im = new Image(); im.src = `chars/${opp().id}_${t}.jpg`; (window.TILE_IMGS = window.TILE_IMGS || []).push(im); }   // 勝敗画像を先読み
     const dur = BGM_BUF.start && S.settings.bgm > 0 ? BGM_BUF.start.duration : 0;
     playJingle('start');
     await showVS(dur ? dur * 1000 - 350 : 2200);
