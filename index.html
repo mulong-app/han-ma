@@ -1042,11 +1042,12 @@ function receiveDraw(who, t, rinshan) {
 }
 
 /* ---------- player ---------- */
+const drawsLeft = who => Math.max(0, MAX_DRAWS - S.draws[who]);
 function drawOpts(who) {
   const h = S.hands[who], c = counts(h), open = S.melds[who].length, o = {};
   o.tsumo = shAll(c, open) === -1 || !!libaiWild(who);
   if (!S.riichi[who]) {
-    if (isClosed(who)) {
+    if (isClosed(who) && drawsLeft(who) > 0) {   // 残りツモが無いとリーチできない
       o.riichiTiles = [];
       for (const k of new Set(h.map(t => t.k))) { c[k]--; if (shAll(c, open) === 0) o.riichiTiles.push(k); c[k]++; }
       o.riichi = o.riichiTiles.length > 0;
@@ -1192,7 +1193,7 @@ function cpuChooseAndDiscard() {
   if (L === 'weak' && r < 0.3 && res.length > 1) pick = res[1 + ((Math.random() * Math.min(3, res.length - 1)) | 0)];
   else if (L === 'mid' && r < 0.1 && res.length > 1) pick = res[1];
   let declare = false;
-  if (!S.riichi.c && isClosed('c') && pick.s === 0) declare = L === 'weak' ? Math.random() < 0.7 : true;
+  if (!S.riichi.c && isClosed('c') && drawsLeft('c') > 0 && pick.s === 0) declare = L === 'weak' ? Math.random() < 0.7 : true;
   const h = S.hands.c, d = h.find(t => t.id === S.drawn.c);
   const tile = d && d.k === pick.k ? d : h.find(t => t.k === pick.k);
   discardTile('c', tile.id, declare);
@@ -1369,8 +1370,8 @@ function render() {
   /* CPU */
   const ch = sortedHand('c');
   const see = sees('p') && !S.ended;
-  const cpuTiles = S.hands.c.filter(t => t.id !== S.drawn.c).map(t => see || S.reveal.has(t.id) ? tileHTML(t, { cls: 'peek' }) : tileHTML(t, { back: true })).join('')
-    + '<div class="gap"></div>' + (ch.dt ? (see || S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '<div class="tile back ghost"></div>');
+  const cpuTiles = see ? sortedHand('c').rest.map(t => tileHTML(t, { cls: 'shown' })).join('') + '<div class="gap"></div>' + (ch.dt ? tileHTML(ch.dt, { cls: 'shown' }) : '<div class="tile back ghost"></div>') : S.hands.c.filter(t => t.id !== S.drawn.c).map(t => S.reveal.has(t.id) ? tileHTML(t, { cls: 'peek' }) : tileHTML(t, { back: true })).join('')
+    + (see ? '' : '<div class="gap"></div>' + (ch.dt ? (S.reveal.has(ch.dt.id) ? tileHTML(ch.dt, { cls: 'peek' }) : tileHTML(ch.dt, { back: true })) : '<div class="tile back ghost"></div>'));
 
   /* assist */
   let assist = '', rec = null;
@@ -1947,7 +1948,7 @@ function guidePages() {
       <li>点数は足し算だけ：<b>ロン${winPts(false)}／ツモ${winPts(true)}／リーチ2／ドラ・5ドラ・裏ドラ 各1</b><br><span class="gs">（ロンとツモの点数は開始画面・メニューで変更できます）</span></li>
       <li>持ち点は <b>${startChips()}点</b>。0点以下になったら飛びで終了です</li>
       <li>国士無双は20点。1回の和了は<b>最大20点</b></li>
-      <li>和了した点数と<b>同じ枚数のチップ</b>が相手から移動</li>
+      <li>和了した点数が<b>そのまま相手から移動</b></li>
       <li>持ち時間を過ぎるたびに<b>1チップを供託</b>。次に和了した人が総取り</li></ul>` },
     { t: '操作', b: por ? `<ul class="gl">
       <li><b>牌を選ぶ</b>：手牌を指でなぞる・タップ、または下の大きな牌を左右にスワイプ（フリックで素早く移動。端の次は反対側の端へループ）</li>
@@ -2011,10 +2012,10 @@ function showResult(r) {
       </div>
       ${S.melds[who].length ? `<div class="rw-melds"><span>鳴き</span>${meldsHTML(who, false)}</div>` : ''}
       <table class="items">${r.sc.items.map(([n, v]) => `<tr><td>${n}</td><td>${v}点</td></tr>`).join('')}</table>
-      <div class="total">${r.sc.total}点 → ${who === 'p' ? '+' : '−'}${r.pay}<small> チップ${r.sc.raw > 20 ? '（上限20点）' : ''}</small></div>${r.potWon ? `<p class="pot" style="font-weight:900;font-size:16px">＋供託 ${r.potWon} チップ</p>` : ''}`;
-    if (who === 'p') html += `<h3>${oppName()}の手牌</h3><div class="rhand">${sortedHand('c').rest.concat(sortedHand('c').dt || []).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
+      <div class="total">${r.sc.total}点 → ${who === 'p' ? '+' : '−'}${r.pay}<small> 点${r.sc.raw > 20 ? '（上限20点）' : ''}</small></div>${r.potWon ? `<p class="pot" style="font-weight:900;font-size:16px">＋供託 ${r.potWon} チップ</p>` : ''}`;
+    if (who === 'p') { const ch = sortedHand('c').rest.concat(sortedHand('c').dt || []); html += `<h3>${oppName()}の手牌</h3><div class="rwin fit" style="--n:${ch.length + 0.4}"><div class="rw-hand">${ch.map(t => tileHTML(t)).join('')}</div></div>`; }
   } else {
-    html = `<h2>流局</h2><p>精算なし${S.pot ? `（供託 ${S.pot} は次の局へ持ち越し）` : ''}</p><h3>${oppName()}の手牌</h3><div class="rhand">${S.hands.c.slice().sort((a, b) => a.k - b.k).map(t => tileHTML(t, { sm: true })).join('')}</div>`;
+    html = `<h2>流局</h2><p>精算なし${S.pot ? `（供託 ${S.pot} は次の局へ持ち越し）` : ''}</p><h3>${oppName()}の手牌</h3><div class="rwin fit" style="--n:${S.hands.c.length + 0.4}"><div class="rw-hand">${S.hands.c.slice().sort((a, b) => a.k - b.k).map(t => tileHTML(t)).join('')}</div></div>`;
   }
   if (S.riichi.p || S.riichi.c) html += `<h3>裏ドラ表示</h3><div class="rhand">${S.uraInd.map(t => tileHTML(t, { sm: true })).join('')}</div>`;
   html += `<div class="row">${FEATURE_SKILLS ? `<span style="color:#c9a0ff;font-weight:900">ゲージ +${r.g} → ${S.gauge}</span>` : '<span></span>'}${btn('next', isOver() ? '結果へ ▶' : '次の局へ ▶')}</div>`;
@@ -2025,11 +2026,12 @@ function showResult(r) {
 // 結果画面の手牌：幅に合わせて牌の大きさを決める（14枚でも1段に収める）
 function fitResultHand() {
   if (!HAS_DOM) return;
-  const el = document.querySelector('#overlay .rwin'); if (!el) return;
-  const n = +getComputedStyle(el).getPropertyValue('--n') || 14.6;
-  const w = el.clientWidth;   // 画面の拡大縮小前の幅（論理px）
-  const u = Math.max(22, Math.min(64, Math.floor((w - 30 - n * 2) / n)));
-  el.style.setProperty('--ru', u + 'px');
+  document.querySelectorAll('#overlay .rwin').forEach(el => {
+    const n = +getComputedStyle(el).getPropertyValue('--n') || 14.6;
+    const w = el.clientWidth;   // 画面の拡大縮小前の幅（論理px）
+    const u = Math.max(18, Math.min(el.classList.contains('fit') ? 48 : 64, Math.floor((w - (el.classList.contains('fit') ? 6 : 30) - n * 2) / n)));
+    el.style.setProperty('--ru', u + 'px');
+  });
 }
 /* 点数バーを1点ずつ動かす（テテテテ…） */
 function ptsCount() {
