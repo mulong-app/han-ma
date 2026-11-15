@@ -296,6 +296,8 @@ table.items td:last-child{text-align:right;font-weight:900}
 .portrait .abilTag{font-size:15px}
 .handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
 .handPick .btn small{display:block;font-size:10px;font-weight:700;opacity:.8;margin-top:3px;white-space:nowrap}
+#car.wait .carup{opacity:0}
+#car.wait .ct.cur .tile{box-shadow:none}
 /* ---------- waits ---------- */
 .wslot{display:contents}
 .waits{display:flex;align-items:center;gap:6px;margin-right:auto;opacity:.62;font-size:15px;font-weight:700;color:var(--ink);white-space:nowrap;pointer-events:none}
@@ -1352,7 +1354,7 @@ function render() {
 
   /* my hand */
   const mh = sortedHand('p');
-  if (S.portrait && canSelect()) { const list = selList(); if (!list.find(t => t.id === S.sel)) { const d = list.find(t => t.id === S.drawn.p); S.sel = (d || list[list.length - 1] || {}).id; } }
+  if (S.portrait && canSelect()) { const list = selList(); if (!list.find(t => t.id === S.sel)) { const i = S.selPos != null && S.selPos >= 0 ? Math.min(S.selPos, list.length - 1) : list.length - 1; S.sel = (list[i] || {}).id; } }
   const canClick = myTurn && (S.phase === 'discard' && !S.riichi.p || S.phase === 'riichiSelect');
   let recUsed = false;
   const mine = t => {
@@ -1405,7 +1407,7 @@ function render() {
     S.tilePitch = u + 2;
     const cSlots = Math.max(14 - 3 * S.melds.c.length, S.hands.c.length + (S.drawn.c ? 0 : 1));
     const cu = Math.max(20, Math.min(46, Math.floor((680 - 12 - cSlots * 3) / cSlots)));
-    const fireOn = canSelect();
+    const fireOn = canDiscard();
     const fireLabel = S.phase === 'riichiSelect' ? 'リーチ<br>打牌' : '打牌';
     const o = S.opts || {}, disc = myTurn && S.phase === 'discard', react = S.phase === 'react', rsel = myTurn && S.phase === 'riichiSelect';
     const H = hapOn() ? HAP : '';
@@ -1451,7 +1453,7 @@ function render() {
     <div class="timer"><i id="timerBar"></i></div>
     <div class="pctrl3" id="pctrl">
       <div class="pcol">${T('autoWin', '自動和了', S.settings.autoWin)}${T('autoCall', '自動鳴き', S.settings.autoCall)}</div>
-      <div id="car" class="${canSelect() ? 'on' : ''}${rsel ? ' rsel' : ''} ${S.settings.swipe ? 'swipe' : ''}">${canSelect() ? H : ''}<div class="carup" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 14 L12 8 L18 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div id="car" class="${canSelect() ? 'on' : ''}${canSelect() && !canDiscard() ? ' wait' : ''}${rsel ? ' rsel' : ''} ${S.settings.swipe ? 'swipe' : ''}">${canSelect() ? H : ''}<div class="carup" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26"><path d="M6 14 L12 8 L18 14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <div id="cartrack">${carList().map((t, i) => `<div class="ct" data-ci="${i}" style="left:0">${tileHTML(t)}</div>`).join('')}</div>
         <button class="carnav l" data-act="selL" aria-label="左の牌">${chev('M15 5 L8 12 L15 19')}${H}</button>
         <button class="carnav r" data-act="selR" aria-label="右の牌">${chev('M9 5 L16 12 L9 19')}${H}</button>
@@ -1463,8 +1465,8 @@ function render() {
       <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
     </div>
     <div class="pspace bottom"></div>`;
-    carSnap();
-    updateSel();
+    if (car.dragging || car.mode) { car.track = null; applyCar(); highlightHand(); }   // 操作中は位置を保つ（相手の手番中の再描画で止めない）
+    else { carSnap(); updateSel(); }
     if (timerId) tick();
     return;
   }
@@ -1673,7 +1675,10 @@ function carFling(v, lo = -Infinity, hi = Infinity) { // v: 牌/ms。lo〜hi の
   };
   car.raf = requestAnimationFrame(step);
 }
-function canSelect() { return S.turn === 'p' && !S.ended && !S.paused && ((S.phase === 'discard' && !S.riichi.p) || S.phase === 'riichiSelect'); }
+// 打牌できる状態（自分の手番）
+function canDiscard() { return S.turn === 'p' && !S.ended && !S.paused && ((S.phase === 'discard' && !S.riichi.p) || S.phase === 'riichiSelect'); }
+// 牌を選べる状態（相手の手番中も選択だけはできる。リーチ後は不可）
+function canSelect() { return canDiscard() || (!S.ended && !S.paused && !S.riichi.p && S.hands.p.length > 0 && S.phase !== 'riichiSelect'); }
 function selList() {
   const mh = sortedHand('p'), all = mh.dt ? mh.rest.concat([mh.dt]) : mh.rest;
   return S.phase === 'riichiSelect' ? all.filter(t => S.opts.riichiTiles.includes(t.k)) : all;
@@ -1716,8 +1721,9 @@ function selectNearest(x) {
   if (best && +best.dataset.id !== S.sel) { S.sel = +best.dataset.id; updateSel(); }
 }
 function fire() {
-  if (!canSelect() || S.sel == null) return;
+  if (!canDiscard() || S.sel == null) return;
   S.raised = null;
+  S.selPos = selList().findIndex(t => t.id === S.sel);   // 次に選ぶ位置（同じ並び位置を維持）
   if (S.phase === 'riichiSelect') discardTile('p', S.sel, true); else discardTile('p', S.sel);
 }
 function toast(msg) {
@@ -2188,6 +2194,7 @@ if (HAS_DOM) {
       const n0 = carList().length, r0 = Math.round(car.pos), s0 = wrapI(r0, n0);
       car.pos = s0 + (car.pos - r0);
       const lo = n0 > 1 && s0 === 0 ? -n0 : 0, hi = n0 > 1 && s0 === n0 - 1 ? 2 * n0 - 1 : Math.max(0, n0 - 1);
+      car.dragging = true;
       drag = { type: 'car', sx: e.clientX, x: e.clientX, sy: e.clientY, sp: car.pos, moved: false, hist: [[performance.now(), e.clientX, e.clientY]], target: e.target, raf: 0,
         mode: '', onCenter: !!ct0 && +ct0.dataset.ci === s0, armed: false, lo, hi };
       e.preventDefault(); return;
@@ -2205,7 +2212,7 @@ if (HAS_DOM) {
     if (drag.type === 'car') {
       const ddx = e.clientX - drag.sx, ddy = e.clientY - drag.sy;
       if (!drag.mode && (Math.abs(ddx) > 8 || Math.abs(ddy) > 8)) {
-        drag.mode = (S.settings.swipe && drag.onCenter && -ddy > Math.abs(ddx)) ? 'v' : 'h';
+        drag.mode = (S.settings.swipe && canDiscard() && drag.onCenter && -ddy > Math.abs(ddx)) ? 'v' : 'h';
         if (drag.mode === 'v') { const el = car.els && car.els[wrapI(Math.round(car.pos), car.els.length)]; if (el) { el.classList.remove('back'); el.classList.add('lift'); drag.el = el; } }
       }
       if (drag.mode === 'v') {
@@ -2219,7 +2226,7 @@ if (HAS_DOM) {
       drag.x = e.clientX; if (Math.abs(drag.x - drag.sx) > 6) drag.moved = true;
       const now = performance.now(); drag.hist.push([now, e.clientX, e.clientY]); while (drag.hist.length > 2 && now - drag.hist[0][0] > 70) drag.hist.shift();
       // スライド中に上へ払ったら、その時点で中央の牌を持ち上げて上スワイプ打牌に切り替える
-      if (S.settings.swipe && drag.mode === 'h') {
+      if (S.settings.swipe && canDiscard() && drag.mode === 'h') {
         drag.ry = Math.max(drag.ry ?? e.clientY, e.clientY);                // スライド中の一番下の位置
         if (!drag.rx || e.clientY >= drag.ry - 2) drag.rx = e.clientX;      // 上に動き始めた地点のx
         const up = drag.ry - e.clientY, side = Math.abs(e.clientX - drag.rx);
@@ -2255,13 +2262,13 @@ if (HAS_DOM) {
     }
   });
   const endDrag = e => {
-    if (!drag) return; const d = drag; drag = null;
-    if (d.type === 'hand') { if (S.settings.handTap && d.wasSel && !d.changed && canSelect()) { if (hapOn()) setTimeout(fire, 60); else fire(); } return; }
+    if (!drag) return; const d = drag; drag = null; car.dragging = false;
+    if (d.type === 'hand') { if (S.settings.handTap && d.wasSel && !d.changed && canDiscard()) { if (hapOn()) setTimeout(fire, 60); else fire(); } return; }
     if (d.type === 'car') {
       if (d.mode === 'v') {
         const box = document.getElementById('car'); if (box) box.classList.remove('armed');
         const el = d.el;
-        if (d.armed && canSelect()) {
+        if (d.armed && canDiscard()) {
           if (el) { el.classList.remove('lift'); el.classList.add('fly'); el.style.transform = `translate3d(${el._x || 0}px,-520px,0) scale(1.1)`; el.style.opacity = '0'; }
           setTimeout(fire, 130);
         } else if (el) {
