@@ -194,10 +194,10 @@ table.items td:last-child{text-align:right;font-weight:900}
 #ptsbar.show{display:flex}
 #ptsbar.counting i{transition:flex-basis .08s linear}
 #ptsbar i{display:flex;align-items:center;min-width:0;overflow:hidden;transition:flex-basis .7s cubic-bezier(.2,.8,.2,1);flex:0 0 0%}
-#ptsbar b{font:900 18px/1 'Zen Kaku Gothic New',sans-serif;color:#fff;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6);padding:0 12px}
+#ptsbar b{position:absolute;top:50%;transform:translateY(-50%);font:900 18px/1 'Zen Kaku Gothic New',sans-serif;color:#fff;white-space:nowrap;text-shadow:0 0 4px rgba(0,0,0,.9),0 1px 2px rgba(0,0,0,.9);pointer-events:none}
+#ptsbar b.l{left:12px}#ptsbar b.r{right:12px}#ptsbar b.m{transform:translate(-50%,-50%);font-size:14px}
 #ptsbar .sp{background:linear-gradient(180deg,#5aa6f0,#2467c4);justify-content:flex-start}
 #ptsbar .sk{background:linear-gradient(180deg,#a3a8ad,#6c7176);justify-content:center}
-#ptsbar .sk b{padding:0 4px;font-size:14px}
 #ptsbar .sc{background:linear-gradient(180deg,#f0707a,#b8232e);justify-content:flex-end}
 .portrait #ptsbar{border-radius:0;height:40px}
 .portrait #ptsbar b{font-size:22px}
@@ -564,7 +564,7 @@ code{font-family:ui-monospace,monospace;font-size:11px;color:var(--gold2)}
 <div id="viewport"><div id="stage">
   <div class="table">
     <div class="brand">韓麻</div>
-    <div id="ptsbar" aria-label="チップの配分"><i class="sp"><b></b></i><i class="sk"><b></b></i><i class="sc"><b></b></i></div>
+    <div id="ptsbar" aria-label="チップの配分"><i class="sp"></i><i class="sk"></i><i class="sc"></i><b class="pl l"></b><b class="pl m"></b><b class="pl r"></b></div>
     <div id="board"></div>
     <div id="cutin"></div>
     <div id="vs" aria-live="polite"></div>
@@ -1511,15 +1511,16 @@ function renderPts() {
   bar.classList.toggle('show', S.handNo > 0);
   const src = S.ptsShow || { p: S.chips.p, c: S.chips.c, pot: S.pot };
   const p = Math.max(0, src.p), c = Math.max(0, src.c), k = Math.max(0, src.pot), tot = p + c + k || 1;
-  const seg = [['.sp', p, `あなた ${p}`], ['.sk', k, `供託 ${k}`], ['.sc', c, `${oppName()} ${c}`]];
-  for (const [sel, v, label] of seg) {
-    const el = bar.querySelector(sel), pct = v / tot * 100;
-    el.style.flexBasis = pct + '%';
-    const full = sel === '.sk' ? 10 : 12, num = sel === '.sk' ? 3.5 : 3;
-    el.querySelector('b').textContent = v === 0 ? '' : pct >= full ? label : pct >= num ? String(v) : '';
-    el.style.minWidth = v > 0 ? '4px' : '0';
+  for (const [sel, v] of [['.sp', p], ['.sk', k], ['.sc', c]]) {
+    const el = bar.querySelector(sel); el.style.flexBasis = (v / tot * 100) + '%'; el.style.minWidth = v > 0 ? '4px' : '0';
   }
-  bar.setAttribute('aria-label', `チップ あなた${p} 供託${k} CPU${c}`);
+  // 数字はバーの長さに関係なく常に表示（左＝あなた、右＝相手、供託は灰色の位置）
+  bar.querySelector('b.l').textContent = `あなた ${p}`;
+  bar.querySelector('b.r').textContent = `${opp().short || oppName()} ${c}`;
+  const m = bar.querySelector('b.m');
+  m.textContent = k ? `供託 ${k}` : '';
+  m.style.left = '50%';
+  bar.setAttribute('aria-label', `点数 あなた${p} 供託${k} ${oppName()}${c}`);
 }
 /* ---------- haptics ----------
    Android 等：Vibration API でパターン振動
@@ -1768,14 +1769,14 @@ function cutin(text, who, tier, key) {
    img に画像のパスを入れると対戦カットインの丸枠に表示される（例: 'chars/player.png'） */
 // 対戦相手。顔画像 chars/<id>.jpg・全身 chars/<id>_full.jpg（無ければシルエット）
 const OPPONENTS = [
-  { id: 'jeanne', fx: 0.66, fy: 0.32, name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
-  { id: 'pompadour', fx: 0.57, fy: 0.28, name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
-  { id: 'genghis', fx: 0.54, fy: 0.33, name: 'ジンギスカン', abil: 'カンして和了ると＋5点（お互い）' },
-  { id: 'delacroix', fx: 0.72, fy: 0.33, name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
-  { id: 'saigo', fx: 0.61, fy: 0.3, name: '西郷隆盛', abil: '西がドラになる（お互い）' },
-  { id: 'libai', fx: 0.68, fy: 0.24, name: '李白', abil: '白がドラになる。リーチ後に白をツモると和了れる（お互い）' },
-  { id: 'rasputin', fx: 0.49, fy: 0.35, name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない', boss: 'ラスボス' },
-  { id: 'jeanne_ura', fx: 0.69, fy: 0.33, name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン', boss: '裏ボス' },
+  { id: 'jeanne', short: 'ジャンヌ', fx: 0.66, fy: 0.32, name: 'ジャンヌ・ダルク', abil: '特殊能力なし' },
+  { id: 'pompadour', short: 'ポンパドゥール', fx: 0.57, fy: 0.28, name: 'ポンパドゥール夫人', abil: 'ポンして和了ると＋1点（お互い）' },
+  { id: 'genghis', short: 'ジンギスカン', fx: 0.54, fy: 0.33, name: 'ジンギスカン', abil: 'カンして和了ると＋5点（お互い）' },
+  { id: 'delacroix', short: 'ドラクロワ', fx: 0.72, fy: 0.33, name: 'ドラクロワ', abil: 'あなたにだけドラが見えなくなる（5は見える）' },
+  { id: 'saigo', short: '西郷', fx: 0.61, fy: 0.3, name: '西郷隆盛', abil: '西がドラになる（お互い）' },
+  { id: 'libai', short: '李白', fx: 0.68, fy: 0.24, name: '李白', abil: '白がドラになる。リーチ後に白をツモると和了れる（お互い）' },
+  { id: 'rasputin', short: 'ラスプーチン', fx: 0.49, fy: 0.35, name: 'ラスプーチン', abil: 'あなたの手牌が見えている。リーチ中以外は振り込まない', boss: 'ラスボス' },
+  { id: 'jeanne_ura', short: '裏ジャンヌ', fx: 0.69, fy: 0.33, name: 'ジャンヌ・ダルク（裏）', abil: 'あなたの手牌が見えている＋配牌が常にイーシャンテン', boss: '裏ボス' },
 ];
 const opp = () => OPPONENTS.find(o => o.id === S.settings.opp) || OPPONENTS[0];
 const oppIs = id => S.settings.opp === id;
