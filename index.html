@@ -246,9 +246,21 @@ table.items td:last-child{text-align:right;font-weight:900}
 #vs .mark{position:relative;font:900 120px/1 'Noto Serif JP',serif;color:#ffe14d;letter-spacing:-.04em;text-shadow:0 0 30px rgba(255,200,60,.8),0 6px 0 #7a5a16;animation:vsMark .5s .45s cubic-bezier(.2,1.6,.4,1) both}
 #vs .abil{position:absolute;top:calc(4% + 34px);left:6%;right:6%;text-align:center;font:700 18px/1.4 'Zen Kaku Gothic New',sans-serif;color:#fff;opacity:0;animation:vsFade .4s 1s both;text-shadow:0 2px 6px rgba(0,0,0,.8)}
 #vs .sub{text-shadow:0 0 10px #000,0 0 4px #000;position:absolute;top:4%;left:0;right:0;text-align:center;font:900 22px/1 'Zen Kaku Gothic New',sans-serif;color:var(--gold2);letter-spacing:.2em;opacity:0;animation:vsFade .4s .8s both}
-.portrait #vs .side.c{top:auto;bottom:47%;right:6%}
+.portrait #vs .side.c{top:auto;bottom:57%;right:6%}
+.portrait #vs .side.p{bottom:auto;top:57%;left:6%}
 #vs .sub,#vs .abil{z-index:3}
 #vs .side{z-index:3}
+#vs .art.me{top:auto;bottom:0;-webkit-mask-image:linear-gradient(0deg,#000 55%,transparent);mask-image:linear-gradient(0deg,#000 55%,transparent);animation:vsInL .55s cubic-bezier(.2,.9,.2,1) both}
+#stage:not(.portrait) #vs .art.me{left:0;right:30%;height:100%;-webkit-mask-image:linear-gradient(270deg,transparent,#000 30%);mask-image:linear-gradient(270deg,transparent,#000 30%)}
+#stage:not(.portrait) #vs .art:not(.me){left:50%}
+.face{position:relative;display:inline-flex;flex:none;width:44px;height:44px;border-radius:50%;overflow:hidden;border:2px solid #f6e2a0;background:rgba(0,0,0,.35);align-items:flex-end;justify-content:center;margin-right:8px;vertical-align:middle}
+.face svg{width:86%;height:86%}.face img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.portrait .face{width:62px;height:62px}
+.face.big{width:72px;height:72px}
+.mePick{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 10px;margin:4px 0 6px;-webkit-overflow-scrolling:touch}
+.mePick button{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:2px solid transparent;border-radius:14px;padding:4px;color:var(--muted);font:700 11px/1.2 'Zen Kaku Gothic New',sans-serif;cursor:pointer}
+.mePick button .face{margin:0;width:56px;height:56px}
+.mePick button.cur{border-color:var(--gold);color:var(--gold2)}
 #stage:not(.portrait) #vs .side.p{bottom:16%;left:10%}#stage:not(.portrait) #vs .side.c{top:16%;right:10%}
 @keyframes vsFade{from{opacity:0}to{opacity:1}}
 @keyframes vsOut{to{opacity:0;transform:scale(1.04)}}
@@ -669,7 +681,7 @@ const SKILLS = {
 let uid = 0;
 const S = {
   chips: { p: START_CHIPS, c: START_CHIPS }, handNo: 0, gauge: 0, bet: 1, pendingSkill: null, skill: null,
-  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', opp: 'jeanne', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
+  maxHands: 4, settings: { scoring: '6/4', level: 'mid', assist: true, time: 8, timeout: 'pot', draws: 20, inertia: 'mid', opp: 'jeanne', me: '', bgmOn: true, seOn: true, haptic: true, se: 0.7, bgm: 0.5, swipe: true, tap: 'double', handTap: true, autoCall: false, autoWin: false }, log: [], token: 0, ended: true, phase: 'idle',
   wall: [], rinshan: [], doraInd: [], uraInd: [], doraKinds: [],
   hands: { p: [], c: [] }, melds: { p: [], c: [] }, river: { p: [], c: [] },
   draws: { p: 0, c: 0 }, riichi: { p: false, c: false }, drawn: { p: null, c: null },
@@ -1440,7 +1452,7 @@ function render() {
     const chev = d => `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${d}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
     board.innerHTML = `
     <div class="pinfo">
-      <span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
+      ${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}
     </div>
     <div class="handrow phand-c" style="--tw:${cu}px"><div class="hand opp">${cpuTiles}</div></div>
     <div class="pbox pmrow opp"><div class="melds opp">${meldsHTML('c', true)}</div></div>
@@ -1466,7 +1478,7 @@ function render() {
       <div class="pcol">${B(rsel ? 'riichiCancel' : 'riichi', rsel ? '取消' : 'リーチ', (disc && !S.riichi.p && o.riichi) || rsel, 'ri')}${B('pskip', disc && S.riichi.p ? '見逃し' : 'スキップ', react || (disc && S.riichi.p && o.tsumo), 'ghost')}</div>
     </div>
     <div class="pbar">
-      <div class="pbar1"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
+      <div class="pbar1">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="sp"></span><button class="btn ghost sm snd" data-act="togBgm" aria-pressed="${S.settings.bgmOn}">♪</button><button class="btn ghost sm snd" data-act="togSe" aria-pressed="${S.settings.seOn}">音</button><button class="btn ghost sm" data-act="pause">一時停止</button><button class="btn ghost sm" data-act="menu">メニュー</button></div>
     </div>
     <div class="pspace bottom"></div>`;
     if (car.dragging || car.mode) { car.track = null; applyCar(); highlightHand(); }   // 操作中は位置を保つ（相手の手番中の再描画で止めない）
@@ -1476,7 +1488,7 @@ function render() {
   }
   board.innerHTML = `
     <div class="zone">
-      <div class="who"><span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
+      <div class="who">${faceIcon(opp().id)}<span class="nm">${oppName()}</span><span class="badge">${{ weak: '弱', mid: '中', strong: '強' }[oppLevel()]}</span><span class="abilTag">${opp().abil}</span>${S.riichi.c ? '<span class="badge ri">リーチ</span>' : ''}</div>
       <div class="handrow"><div class="hand opp">${cpuTiles}</div><div class="melds opp">${meldsHTML('c', true)}</div></div>
     </div>
     <div class="mid">
@@ -1491,7 +1503,7 @@ function render() {
       <div class="rivers"><div class="river" data-wm="${wmOf('p')}">${riverHTML('p')}</div></div>
     </div>
     <div class="zone">
-      <div class="who"><span class="nm">あなた</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
+      <div class="who">${faceIcon(S.settings.me)}<span class="nm">${me() ? me().short : 'あなた'}</span>${gaugeHTML()}${S.riichi.p ? '<span class="badge ri">リーチ</span>' : ''}<span class="wslot">${waitHTML()}</span></div>
       <div class="handrow"><div class="hand mine">${myTiles}</div><div class="melds">${meldsHTML('p', false)}</div></div>
       <div class="timer"><i id="timerBar"></i></div>
       <div class="actions"><span class="msg">${msg}</span>${acts}</div>
@@ -1802,9 +1814,12 @@ const OPPONENTS = [
 const opp = () => OPPONENTS.find(o => o.id === S.settings.opp) || OPPONENTS[0];
 const oppIs = id => S.settings.opp === id;
 const oppName = () => opp().name;
+const me = () => OPPONENTS.find(o => o.id === S.settings.me) || null;   // 自分のキャラ（見た目だけ。能力は付かない）
+// 顔アイコン（丸）
+function faceIcon(id, cls = '') { return `<span class="face ${cls}">${SILHOUETTE}${id ? `<img src="chars/${id}.jpg" alt="" onerror="this.remove()">` : ''}</span>`; }
 const oppLevel = () => opp().boss ? 'strong' : S.settings.level;
 const CHARACTERS = {
-  p: { name: 'あなた', title: 'PLAYER', img: '' },
+  p: { get name() { return me() ? me().name : 'あなた'; }, title: () => me() ? 'あなた' : 'PLAYER', get img() { return me() ? 'chars/' + me().id + '.jpg' : ''; } },
   c: { get name() { return oppName(); }, title: () => (opp().boss ? opp().boss + ' ・ ' : '') + '強さ ' + { weak: '弱', mid: '中', strong: '強' }[oppLevel()], get img() { return 'chars/' + opp().id + '.jpg'; } },
 };
 const SILHOUETTE = `<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="38" r="20" fill="rgba(246,226,160,.55)"/><path d="M12 100c2-24 18-36 38-36s36 12 38 36z" fill="rgba(246,226,160,.55)"/></svg>`;
@@ -1813,7 +1828,7 @@ function showVS(ms) {
   return new Promise(done => {
     const el = document.getElementById('vs'); if (!el) return done();
     const ttl = w => { const t = CHARACTERS[w].title; return typeof t === 'function' ? t() : t; };
-    el.innerHTML = `<div class="band p"></div><div class="band c"></div><div class="art" style="background-image:url('chars/${opp().id}_full.jpg')"></div>
+    el.innerHTML = `<div class="band p"></div><div class="band c"></div><div class="art" style="background-image:url('chars/${opp().id}_full.jpg')"></div>${me() ? `<div class="art me" style="background-image:url('chars/${me().id}_full.jpg')"></div>` : ''}
       <div class="side p"><div class="nm"><small>${ttl('p')}</small>${CHARACTERS.p.name}</div></div>
       <div class="mark">VS</div>
       <div class="side c"><div class="nm"><small>${ttl('c')}</small>${CHARACTERS.c.name}</div></div>
@@ -1844,7 +1859,7 @@ function settingsHTML() {
     <h3>手牌で選択中の牌をタップして打牌</h3>
     <div class="opts"><button class="opt ${S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="1">ON</button><button class="opt ${!S.settings.handTap ? 'on' : ''}" data-act="handTap" data-v="0">OFF</button></div>`;
 }
-function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp })); } catch (e) {} }
+function saveSettings() { try { localStorage.setItem('hanma_settings', JSON.stringify({ hands: S.maxHands, scoring: S.settings.scoring, time: S.settings.time, assist: S.settings.assist, level: S.settings.level, swipe: S.settings.swipe, tap: S.settings.tap, handTap: S.settings.handTap, autoCall: S.settings.autoCall, autoWin: S.settings.autoWin, se: S.settings.se, bgm: S.settings.bgm, draws: S.settings.draws, inertia: S.settings.inertia, bgmOn: S.settings.bgmOn, seOn: S.settings.seOn, opp: S.settings.opp, me: S.settings.me })); } catch (e) {} }
 function showTitle() {
   showOverlay(`<div class="panel">
     <h2>韓麻 HEADS-UP</h2>
@@ -1874,7 +1889,9 @@ async function startGame() {
 }
 function showOppSelect() {
   showOverlay(`<div class="panel wide">
-    <h2>対戦相手を選んでください</h2>
+    <h3 style="margin:4px 0 0">あなたのキャラ</h3>
+    <div class="mePick"><button class="${!S.settings.me ? 'cur' : ''}" data-act="pickMe" data-v="">${faceIcon('')}なし</button>${OPPONENTS.map(o => `<button class="${S.settings.me === o.id ? 'cur' : ''}" data-act="pickMe" data-v="${o.id}">${faceIcon(o.id)}${o.short}</button>`).join('')}</div>
+    <h2>対戦相手</h2>
     <div class="oppGrid">${OPPONENTS.map(o => `<button class="oppCard${o.boss ? ' boss' : ''}${S.settings.opp === o.id ? ' cur' : ''}" data-act="pickOpp" data-v="${o.id}">
       <div class="por">${charPortrait('c', o.id)}</div>
       <div class="tx"><b>${o.name}</b>${o.boss ? `<em>${o.boss}</em>` : ''}<small>${o.abil}</small></div></button>`).join('')}</div>
@@ -2046,6 +2063,7 @@ function act(a, ds) {
     case 'level': S.settings.level = ds.v; saveSettings(); document.getElementById('setLevel').value = ds.v; showTitle(); break;
     case 'begin': showOppSelect(); break;
     case 'pickOpp': S.settings.opp = ds.v; saveSettings(); showOppPopup(); break;
+    case 'pickMe': S.settings.me = ds.v; saveSettings(); { const sc = document.querySelector('.mePick').scrollLeft; showOppSelect(); document.querySelector('.mePick').scrollLeft = sc; } break;
     case 'pickLevel': S.settings.level = ds.v; { const el = document.getElementById('setLevel'); if (el) el.value = ds.v; } saveSettings(); showOppPopup(); break;
     case 'settings': toggleMenu(true); break;
     case 'toTitle': showTitle(); break;
@@ -2177,6 +2195,7 @@ if (HAS_DOM) {
       if (typeof st.autoWin === 'boolean') S.settings.autoWin = st.autoWin;
       if (typeof st.se === 'number') S.settings.se = st.se;
       if (typeof st.opp === 'string') S.settings.opp = st.opp;
+      if (typeof st.me === 'string') S.settings.me = st.me;
       if (typeof st.bgmOn === 'boolean') S.settings.bgmOn = st.bgmOn;
       if (typeof st.seOn === 'boolean') S.settings.seOn = st.seOn;
       if (['off', 'weak', 'mid', 'strong'].includes(st.inertia)) { S.settings.inertia = st.inertia; document.getElementById('setInertia').value = st.inertia; }
