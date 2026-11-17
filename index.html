@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>韓麻パラダイス -History-</title>
+<meta name="theme-color" content="#072a1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v3.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon-v3.png">
 <meta name="apple-mobile-web-app-title" content="韓麻パラダイス">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -315,6 +322,7 @@ table.items td:last-child{text-align:right;font-weight:900}
 .handPick .btn{padding:12px 4px;font-size:20px;line-height:1.1}
 .handPick .btn small{display:block;font-size:10px;font-weight:700;opacity:.8;margin-top:3px;white-space:nowrap}
 #car.wait .carup{opacity:0}
+#car.none .ct.cur .tile{box-shadow:none;outline:none}#car.none .ct.cur{filter:brightness(.8)}
 #car.wait .ct.cur .tile{box-shadow:none}
 .hand.mine .tile.danger{box-shadow:0 0 0 3px #ff4d5e,0 4px 0 #2d6a4d}
 .hand.mine .tile.danger::after{content:'危';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:900;color:#ff6b78}
@@ -1067,6 +1075,8 @@ function drawOpts(who) {
 }
 function playerOnDraw() {
   sfx('tsumo');
+  if (S.selNone && S.sel == null) S.sel = S.drawn.p;   // ツモ切り後は、引いた牌を選ぶ
+  S.selNone = false;
   S.phase = 'discard'; S.opts = drawOpts('p'); S.winDismissed = false; S.callDismissed = false; S.raised = null; render();
   if (S.opts.tsumo && S.settings.autoWin) return autoDo(() => S.phase === 'discard' && S.turn === 'p' && S.opts.tsumo, () => win('p', 'tsumo'));
   if (!S.riichi.p && (S.opts.kans || []).length && S.settings.autoCall && !S.opts.tsumo) {
@@ -1127,6 +1137,8 @@ function doRedeal() {
 
 /* ---------- shared actions ---------- */
 function discardTile(who, id, declare) {
+  // ツモ切りしたら選択を外す（次のツモ牌を選ぶ）
+  if (who === 'p') { if (id === S.drawn.p) { S.selNone = true; S.selPos = null; S.sel = null; } else S.selNone = false; }
   if (S.ended) return;
   clearTimer();
   const h = S.hands[who], i = h.findIndex(t => t.id === id); if (i < 0) return;
@@ -1393,7 +1405,7 @@ function render() {
 
   /* my hand */
   const mh = sortedHand('p');
-  if (S.portrait && canSelect()) { const list = selList(); if (!list.find(t => t.id === S.sel)) { const i = S.selPos != null && S.selPos >= 0 ? Math.min(S.selPos, list.length - 1) : list.length - 1; S.sel = (list[i] || {}).id; } }
+  if (S.portrait && canSelect() && !(S.selNone && S.sel == null)) { const list = selList(); if (!list.find(t => t.id === S.sel)) { const i = S.selPos != null && S.selPos >= 0 ? Math.min(S.selPos, list.length - 1) : list.length - 1; S.sel = (list[i] || {}).id; } }
   const canClick = myTurn && (S.phase === 'discard' && !S.riichi.p || S.phase === 'riichiSelect');
   let recUsed = false;
   const mine = t => {
@@ -1672,6 +1684,7 @@ function handPick(x) {
 }
 function highlightHand() {
   const on = canSelect();
+  { const cr = document.getElementById('car'); if (cr) cr.classList.toggle('none', S.sel == null); }
   document.querySelectorAll('.hand.mine .tile[data-id]').forEach(el => el.classList.toggle('sel', on && +el.dataset.id === S.sel));
   refreshWaits();
 }
@@ -2360,7 +2373,7 @@ if (HAS_DOM) {
   const go = () => {
     if (location.protocol === 'file:' || !(window.AudioContext || window.webkitAudioContext)) return go2();
     showOverlay(`<div class="panel tapstart" data-act="tapStart" style="text-align:center;cursor:pointer">
-      <img src="icons/icon-192.png" alt="" style="width:120px;height:120px;border-radius:26px;box-shadow:0 8px 24px rgba(0,0,0,.5)" onerror="this.remove()"><div class="logo" style="margin-top:14px"><span class="l1">韓麻パラダイス</span><span class="l2">-History-</span></div><p style="font-size:22px;font-weight:900;margin:14px 0 4px">タップしてはじめる</p>
+      <img src="icons/icon-192-v3.png" alt="" style="width:120px;height:120px;border-radius:26px;box-shadow:0 8px 24px rgba(0,0,0,.5)" onerror="this.remove()"><div class="logo" style="margin-top:14px"><span class="l1">韓麻パラダイス</span><span class="l2">-History-</span></div><p style="font-size:22px;font-weight:900;margin:14px 0 4px">タップしてはじめる</p>
       <p style="color:var(--muted);margin:0">BGM・効果音が流れます（右上のボタンでON/OFF）</p></div>`);
   };
   syncSndBtns();
@@ -2391,6 +2404,13 @@ function preloadTiles() {
 }
 function showLoading() {
   showOverlay('<div class="panel" style="text-align:center"><h2 style="margin:0">読み込み中…</h2><p style="color:var(--muted);margin:8px 0 0">牌とBGMを準備しています</p></div>');
+}
+</script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').then(r => r.update()).catch(() => {}));
+  const hadController = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
 }
 </script>
 </body>
