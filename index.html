@@ -2185,7 +2185,11 @@ if (HAS_DOM) {
       return;
     }
     const ch = e.target.closest('[data-choose]'); if (ch) { pickChoose(+ch.dataset.choose); return; }
-    const t = e.target.closest('.tile[data-hand="p"]'); if (t) onHandClick(+t.dataset.id);
+    const t = e.target.closest('.tile[data-hand="p"]'); if (t) { onHandClick(+t.dataset.id); return; }
+    // 卓の何もないところを押したら選択を解除（次にツモった牌を選ぶ）
+    if (e.target.closest('#board') && !e.target.closest('#car, .tile, button, label, input, select, .winpop, .choose') && S.sel != null && canSelect()) {
+      S.sel = null; S.selNone = true; S.raised = null; updateSel(); highlightHand();
+    }
   });
   document.getElementById('setLevel').addEventListener('change', e => { S.settings.level = e.target.value; saveSettings(); render(); });
   document.getElementById('setTime').addEventListener('change', e => { S.settings.time = +e.target.value; saveSettings(); });
